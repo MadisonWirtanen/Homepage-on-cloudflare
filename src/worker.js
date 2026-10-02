@@ -35,7 +35,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 4000) {
 }
 
 async function getTailscaleAuthorization(env, timeoutMs) {
-  if (configured(env.TAILSCALE_API_KEY)) return `Basic ${btoa(`${env.TAILSCALE_API_KEY}:`)}`;
+  if (configured(env.TAILSCALE_API_KEY)) return `Bearer ${env.TAILSCALE_API_KEY}`;
   if (!configured(env.TAILSCALE_OAUTH_CLIENT_ID, env.TAILSCALE_OAUTH_CLIENT_SECRET)) return null;
   if (tailscaleTokenCache.token && tailscaleTokenCache.expiresAt > Date.now() + 60_000) {
     return `Bearer ${tailscaleTokenCache.token}`;

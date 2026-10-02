@@ -54,11 +54,11 @@ jobs:
           probe health "/api/health"
           probe status "/api/status"
 
-          ROOT_CODE="$(awk '/^HTTP\\// {code=$2} END {print code}' /tmp/root.headers)"
-          INDEX_CODE="$(awk '/^HTTP\\// {code=$2} END {print code}' /tmp/index.headers)"
-          APP_CODE="$(awk '/^HTTP\\// {code=$2} END {print code}' /tmp/appjs.headers)"
-          HEALTH_CODE="$(awk '/^HTTP\\// {code=$2} END {print code}' /tmp/health.headers)"
-          STATUS_CODE="$(awk '/^HTTP\\// {code=$2} END {print code}' /tmp/status.headers)"
+                    ROOT_CODE="$(grep '^HTTP/' /tmp/root.headers | tail -n1 | cut -d' ' -f2)"
+                    INDEX_CODE="$(grep '^HTTP/' /tmp/index.headers | tail -n1 | cut -d' ' -f2)"
+                    APP_CODE="$(grep '^HTTP/' /tmp/appjs.headers | tail -n1 | cut -d' ' -f2)"
+                    HEALTH_CODE="$(grep '^HTTP/' /tmp/health.headers | tail -n1 | cut -d' ' -f2)"
+                    STATUS_CODE="$(grep '^HTTP/' /tmp/status.headers | tail -n1 | cut -d' ' -f2)"
 
           test "$ROOT_CODE" = "200"
           test "$INDEX_CODE" = "200"
