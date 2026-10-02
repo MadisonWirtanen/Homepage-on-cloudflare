@@ -29,6 +29,11 @@ jobs:
         run: |
           set -u
           URL="https://homepage-on-cloudflare.madisonwirtanen.workers.dev"
+          DIAG_URL="https://homepage-cf-diagnostic.madisonwirtanen.workers.dev"
+          echo "===== account-level workers.dev diagnostic ====="
+          curl -fsS --max-time 15 "$DIAG_URL/" | grep -q "OK-DIAGNOSTIC"
+          echo "Diagnostic Worker reachable"
+
 
           probe() {
             name="$1"
