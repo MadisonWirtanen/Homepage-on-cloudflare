@@ -174,14 +174,14 @@ async function statusHandler(request, env) {
   const memoryTtlMs = numberEnv(env.WORKER_MEMORY_TTL_SECONDS, 60) * 1000;
   if (statusMemoryCache.payload && statusMemoryCache.expiresAt > Date.now()) {
     return jsonResponse(request.method === "HEAD" ? null : statusMemoryCache.payload, {
-      headers: { "Cache-Control": "public, max-age=300, stale-while-revalidate=300", "X-Status-Cache": "memory-hit" },
+      headers: { "Cache-Control": "no-store", "X-Status-Cache": "memory-hit" },
     });
   }
 
   const payload = await buildStatusPayload(env);
   statusMemoryCache = { payload, expiresAt: Date.now() + memoryTtlMs };
   return jsonResponse(request.method === "HEAD" ? null : payload, {
-    headers: { "Cache-Control": "public, max-age=300, stale-while-revalidate=300", "X-Status-Cache": "memory-miss" },
+    headers: { "Cache-Control": "no-store", "X-Status-Cache": "memory-miss" },
   });
 }
 
