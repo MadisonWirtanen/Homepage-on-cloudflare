@@ -339,3 +339,18 @@ npm run check
 ## License
 
 MIT
+
+## 当前生产部署
+
+当前生产环境使用 Cloudflare Worker `homepage-on-cloudflare`，GitHub `main` 分支已连接 Cloudflare Workers Builds：
+
+- 构建检查：`npm run check`
+- 部署：`npx wrangler deploy`
+- 正式入口：`https://www.xn--rgvt7o95i1ni.com/`
+- 正式域名通过 Worker Route 接管，请求在到达原 Cloudflare Tunnel 之前进入新 Worker。
+- 原 `www` CNAME 到 Cloudflare Tunnel 保留作为快速回滚路径；删除对应 Worker Route 即可恢复旧主页。
+- 此 Cloudflare 账户的 `*.workers.dev` 入口在部署验证时持续返回平台 1101，因此生产环境明确使用自定义域名，不依赖 `workers.dev`。
+- 运行时认证信息存储在 Cloudflare Worker Secrets 中，不保存在 GitHub 仓库。
+- 普通 HTML/CSS/JS 由 Static Assets 直接提供，只有 `/api/*` 进入 Worker。
+
+生产 smoke test 位于 `.github/workflows/ci.yml`，会在每次 `main` 推送后验证正式主页、健康接口以及状态聚合接口。

@@ -27,50 +27,71 @@ jobs:
       - name: Verify production homepage
         shell: bash
         run: |
-          set -u
+          set -euo pipefail
           URL="https://www.xn--rgvt7o95i1ni.com"
 
-          probe() {
-            name="$1"
-            path="$2"
-            echo "===== $name $path ====="
-            code="$(curl -sSL --max-time 20 -D "/tmp/$name.headers" -o "/tmp/$name.body" -w '%{http_code}' "$URL$path" || true)"
-            echo "HTTP $code"
-            cat "/tmp/$name.headers" || true
-            echo "--- body ---"
-            head -c 3000 "/tmp/$name.body" || true
-            echo
-            echo
+          fetch_code() {
+            local path="$1"
+            local output="$2"
+            curl -sSL --max-time 20 -o "$output" -w '%{http_code}' "$URL$path"
           }
 
-          probe root "/"
-          probe index "/index.html"
-          probe appjs "/app.js"
-          probe health "/api/health"
-          probe status "/api/status"
-
-                    ROOT_CODE="$(grep '^HTTP/' /tmp/root.headers | tail -n1 | cut -d' ' -f2)"
-                    INDEX_CODE="$(grep '^HTTP/' /tmp/index.headers | tail -n1 | cut -d' ' -f2)"
-                    APP_CODE="$(grep '^HTTP/' /tmp/appjs.headers | tail -n1 | cut -d' ' -f2)"
-                    HEALTH_CODE="$(grep '^HTTP/' /tmp/health.headers | tail -n1 | cut -d' ' -f2)"
-                    STATUS_CODE="$(grep '^HTTP/' /tmp/status.headers | tail -n1 | cut -d' ' -f2)"
+          ROOT_CODE="$(fetch_code "/" /tmp/root.html)"
+          APP_CODE="$(fetch_code "/app.js" /tmp/app.js)"
+          HEALTH_CODE="$(fetch_code "/api/health?ci=$GITHUB_SHA" /tmp/health.json)"
 
           test "$ROOT_CODE" = "200"
-          test "$INDEX_CODE" = "200"
           test "$APP_CODE" = "200"
           test "$HEALTH_CODE" = "200"
-          test "$STATUS_CODE" = "200"
+          grep -q '<title>知无涯者</title>' /tmp/root.html
+          jq -e '.ok == true and .runtime == "cloudflare-workers"' /tmp/health.json >/dev/null
 
-          grep -q '<title>知无涯者</title>' /tmp/root.body
+          STATUS_READY=0
+          for attempt in {1..12}; do
+            STATUS_CODE="$(fetch_code "/api/status?ci=$GITHUB_SHA&attempt=$attempt" /tmp/status.json || true)"
+            if [ "$STATUS_CODE" = "200" ] && jq -e '
+              .providers.cloudflareTunnel.configured == true and
+              .providers.cloudflareTunnel.ok == true and
+              .providers.uptimeRobot.configured == true and
+              .providers.uptimeRobot.ok == true
+            ' /tmp/status.json >/dev/null 2>&1; then
+              STATUS_READY=1
+              break
+            fi
+            sleep 5
+          done
+
+          if [ "$STATUS_READY" != "1" ]; then
+            echo "Production status providers did not become ready."
+            cat /tmp/status.json || true
+            exit 1
+          fi
+
+          if ! jq -e '.providers.tailscale.configured == true and .providers.tailscale.ok == true' /tmp/status.json >/dev/null; then
+            echo "::warning::Tailscale status API is configured but the current credential/device request is not succeeding."
+          fi
 
           jq '{
             checkedAt,
-            tailscale: .providers.tailscale.status,
-            cloudflareTunnel: .providers.cloudflareTunnel.status,
-            uptimeRobot: .providers.uptimeRobot.status,
+            tailscale: {
+              ok: .providers.tailscale.ok,
+              status: .providers.tailscale.status,
+              error: .providers.tailscale.error
+            },
+            cloudflareTunnel: {
+              ok: .providers.cloudflareTunnel.ok,
+              status: .providers.cloudflareTunnel.status,
+              connections: .providers.cloudflareTunnel.connections
+            },
+            uptimeRobot: {
+              ok: .providers.uptimeRobot.ok,
+              status: .providers.uptimeRobot.status,
+              up: .providers.uptimeRobot.up,
+              down: .providers.uptimeRobot.down
+            },
             sites: (.sites | with_entries(.value = {
               online: .value.online,
               status: .value.status,
               latency: .value.latency
             }))
-          }' /tmp/status.body
+          }' /tmp/status.json
