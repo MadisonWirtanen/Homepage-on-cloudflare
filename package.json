@@ -1,0 +1,15 @@
+{
+  "name": "homepage-on-cloudflare",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare-native personal homepage with static assets and a minimal status Worker.",
+  "scripts": {
+    "check": "node --check src/worker.js && node --check public/app.js && node --check public/config.js && node --test tests/*.test.mjs && node scripts-security-check.mjs",
+    "dev": "wrangler dev",
+    "deploy": "npm run check && wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.102.0"
+  }
+}
