@@ -178,7 +178,7 @@ OAuth Client 只授予设备读取权限：`devices:core:read`。
 
 ### 5. 重新部署并测试
 
-保存 Variables and Secrets 后重新部署，先使用 `*.workers.dev` 地址测试：
+保存 Variables and Secrets 后重新部署，并通过自定义域名测试：
 
 - 页面和背景是否正常；
 - 导航是否正常；
@@ -186,7 +186,7 @@ OAuth Client 只授予设备读取权限：`devices:core:read`。
 - 三张 Status 卡片是否返回数据；
 - 自有服务卡片是否显示延迟/离线。
 
-确认无误后，再到 **Settings -> Domains & Routes** 绑定正式主页域名。
+当前账户的 `*.workers.dev` 入口在实际部署验证中持续返回 Cloudflare 平台 1101，因此本项目生产环境不依赖 `workers.dev`。正式环境使用 **Settings -> Domains & Routes** 下的自定义域名 / Worker Route。
 
 ## 本地开发 / Wrangler 部署
 
