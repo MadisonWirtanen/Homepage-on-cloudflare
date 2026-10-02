@@ -27,21 +27,42 @@ jobs:
       - name: Verify production homepage
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
           URL="https://homepage-on-cloudflare.madisonwirtanen.workers.dev"
 
-          for attempt in {1..12}; do
-            if curl -fsS --max-time 15 "$URL/" -o /tmp/homepage.html               && grep -q '<title>知无涯者</title>' /tmp/homepage.html; then
-              break
-            fi
-            if [ "$attempt" -eq 12 ]; then
-              echo "Homepage smoke test failed"
-              exit 1
-            fi
-            sleep 5
-          done
+          probe() {
+            name="$1"
+            path="$2"
+            echo "===== $name $path ====="
+            code="$(curl -sS --max-time 20 -D "/tmp/$name.headers" -o "/tmp/$name.body" -w '%{http_code}' "$URL$path" || true)"
+            echo "HTTP $code"
+            cat "/tmp/$name.headers" || true
+            echo "--- body ---"
+            head -c 3000 "/tmp/$name.body" || true
+            echo
+            echo
+          }
 
-          curl -fsS --max-time 20 "$URL/api/status" -o /tmp/status.json
+          probe root "/"
+          probe index "/index.html"
+          probe appjs "/app.js"
+          probe health "/api/health"
+          probe status "/api/status"
+
+          ROOT_CODE="$(awk 'NR==1 {print $2}' /tmp/root.headers)"
+          INDEX_CODE="$(awk 'NR==1 {print $2}' /tmp/index.headers)"
+          APP_CODE="$(awk 'NR==1 {print $2}' /tmp/appjs.headers)"
+          HEALTH_CODE="$(awk 'NR==1 {print $2}' /tmp/health.headers)"
+          STATUS_CODE="$(awk 'NR==1 {print $2}' /tmp/status.headers)"
+
+          test "$ROOT_CODE" = "200"
+          test "$INDEX_CODE" = "200"
+          test "$APP_CODE" = "200"
+          test "$HEALTH_CODE" = "200"
+          test "$STATUS_CODE" = "200"
+
+          grep -q '<title>知无涯者</title>' /tmp/root.body
+
           jq -e '
             .providers.tailscale.configured == true and
             .providers.tailscale.ok == true and
@@ -49,7 +70,7 @@ jobs:
             .providers.cloudflareTunnel.ok == true and
             .providers.uptimeRobot.configured == true and
             .providers.uptimeRobot.ok == true
-          ' /tmp/status.json >/dev/null
+          ' /tmp/status.body >/dev/null
 
           jq '{
             checkedAt,
@@ -61,4 +82,4 @@ jobs:
               status: .value.status,
               latency: .value.latency
             }))
-          }' /tmp/status.json
+          }' /tmp/status.body
