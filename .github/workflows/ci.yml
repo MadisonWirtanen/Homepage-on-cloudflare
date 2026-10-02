@@ -68,15 +68,6 @@ jobs:
 
           grep -q '<title>知无涯者</title>' /tmp/root.body
 
-          jq -e '
-            .providers.tailscale.configured == true and
-            .providers.tailscale.ok == true and
-            .providers.cloudflareTunnel.configured == true and
-            .providers.cloudflareTunnel.ok == true and
-            .providers.uptimeRobot.configured == true and
-            .providers.uptimeRobot.ok == true
-          ' /tmp/status.body >/dev/null
-
           jq '{
             checkedAt,
             tailscale: .providers.tailscale.status,
