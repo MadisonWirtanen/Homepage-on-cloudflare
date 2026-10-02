@@ -28,8 +28,8 @@ jobs:
         shell: bash
         run: |
           set -u
-          URL="https://homepage-test.003153.xyz"
-          DIAG_URL="https://workerdiag.003153.xyz"
+          URL="https://homepage-test.xn--rgvt7o95i1ni.com"
+          DIAG_URL="https://workerdiag.xn--rgvt7o95i1ni.com"
           echo "===== account-level workers.dev diagnostic ====="
           curl -fsS --max-time 15 "$DIAG_URL/" | grep -q "OK-DIAGNOSTIC"
           echo "Diagnostic Worker reachable"
