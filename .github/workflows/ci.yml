@@ -39,7 +39,7 @@ jobs:
             name="$1"
             path="$2"
             echo "===== $name $path ====="
-            code="$(curl -sS --max-time 20 -D "/tmp/$name.headers" -o "/tmp/$name.body" -w '%{http_code}' "$URL$path" || true)"
+            code="$(curl -sSL --max-time 20 -D "/tmp/$name.headers" -o "/tmp/$name.body" -w '%{http_code}' "$URL$path" || true)"
             echo "HTTP $code"
             cat "/tmp/$name.headers" || true
             echo "--- body ---"
@@ -54,11 +54,11 @@ jobs:
           probe health "/api/health"
           probe status "/api/status"
 
-          ROOT_CODE="$(awk 'NR==1 {print $2}' /tmp/root.headers)"
-          INDEX_CODE="$(awk 'NR==1 {print $2}' /tmp/index.headers)"
-          APP_CODE="$(awk 'NR==1 {print $2}' /tmp/appjs.headers)"
-          HEALTH_CODE="$(awk 'NR==1 {print $2}' /tmp/health.headers)"
-          STATUS_CODE="$(awk 'NR==1 {print $2}' /tmp/status.headers)"
+          ROOT_CODE="$(awk '/^HTTP\\// {code=$2} END {print code}' /tmp/root.headers)"
+          INDEX_CODE="$(awk '/^HTTP\\// {code=$2} END {print code}' /tmp/index.headers)"
+          APP_CODE="$(awk '/^HTTP\\// {code=$2} END {print code}' /tmp/appjs.headers)"
+          HEALTH_CODE="$(awk '/^HTTP\\// {code=$2} END {print code}' /tmp/health.headers)"
+          STATUS_CODE="$(awk '/^HTTP\\// {code=$2} END {print code}' /tmp/status.headers)"
 
           test "$ROOT_CODE" = "200"
           test "$INDEX_CODE" = "200"
