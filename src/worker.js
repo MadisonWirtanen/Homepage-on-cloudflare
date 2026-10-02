@@ -1,4 +1,5 @@
 import { HEALTH_CHECKS } from "../public/config.js";
+import { isCrossSiteRequest, summarizeUptimeRobot, tailscaleOnline } from "./lib.js";
 
 let statusMemoryCache = { expiresAt: 0, payload: null };
 let tailscaleTokenCache = { expiresAt: 0, token: null };
@@ -33,24 +34,6 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 4000) {
   finally { clearTimeout(timer); }
 }
 
-export function summarizeUptimeRobot(data) {
-  const monitors = Array.isArray(data?.monitors) ? data.monitors : [];
-  let up = 0, down = 0, paused = 0, unknown = 0;
-  for (const monitor of monitors) {
-    if (monitor.status === 2) up += 1;
-    else if (monitor.status === 8 || monitor.status === 9) down += 1;
-    else if (monitor.status === 0) paused += 1;
-    else unknown += 1;
-  }
-  return { up, down, paused, unknown, total: monitors.length };
-}
-
-export function tailscaleOnline(lastSeen, thresholdMs = 5 * 60 * 1000) {
-  const time = new Date(lastSeen).getTime();
-  if (!Number.isFinite(time)) return false;
-  return Date.now() - time <= thresholdMs;
-}
-
 async function getTailscaleAuthorization(env, timeoutMs) {
   if (configured(env.TAILSCALE_API_KEY)) return `Basic ${btoa(`${env.TAILSCALE_API_KEY}:`)}`;
   if (!configured(env.TAILSCALE_OAUTH_CLIENT_ID, env.TAILSCALE_OAUTH_CLIENT_SECRET)) return null;
@@ -79,7 +62,7 @@ async function getTailscaleAuthorization(env, timeoutMs) {
   return `Bearer ${data.access_token}`;
 }
 
-export async function fetchTailscaleStatus(env, timeoutMs) {
+async function fetchTailscaleStatus(env, timeoutMs) {
   if (!configured(env.TAILSCALE_DEVICE_ID)) return { configured: false, ok: false, status: "unconfigured" };
   const authorization = await getTailscaleAuthorization(env, timeoutMs);
   if (!authorization) return { configured: false, ok: false, status: "unconfigured" };
@@ -103,7 +86,7 @@ export async function fetchTailscaleStatus(env, timeoutMs) {
   }
 }
 
-export async function fetchCloudflareTunnelStatus(env, timeoutMs) {
+async function fetchCloudflareTunnelStatus(env, timeoutMs) {
   if (!configured(env.CLOUDFLARE_API_TOKEN, env.CLOUDFLARE_ACCOUNT_ID, env.CLOUDFLARE_TUNNEL_ID)) {
     return { configured: false, ok: false, status: "unconfigured" };
   }
@@ -125,7 +108,7 @@ export async function fetchCloudflareTunnelStatus(env, timeoutMs) {
   }
 }
 
-export async function fetchUptimeRobotStatus(env, timeoutMs) {
+async function fetchUptimeRobotStatus(env, timeoutMs) {
   if (!configured(env.UPTIMEROBOT_API_KEY)) return { configured: false, ok: false, status: "unconfigured" };
   try {
     const body = new URLSearchParams({ api_key: env.UPTIMEROBOT_API_KEY, format: "json", logs: "0" });
@@ -144,7 +127,7 @@ export async function fetchUptimeRobotStatus(env, timeoutMs) {
   }
 }
 
-export async function checkSite(check, timeoutMs) {
+async function checkSite(check, timeoutMs) {
   const started = Date.now();
   try {
     const response = await fetchWithTimeout(check.url, {
@@ -169,13 +152,6 @@ async function fetchSiteStatuses(env, timeoutMs) {
     results.push(...batchResults);
   }
   return Object.fromEntries(results.map((result) => [result.id, result]));
-}
-
-export function isCrossSiteRequest(request) {
-  const url = new URL(request.url);
-  const origin = request.headers.get("Origin");
-  if (origin && origin !== url.origin) return true;
-  return request.headers.get("Sec-Fetch-Site") === "cross-site";
 }
 
 async function buildStatusPayload(env) {

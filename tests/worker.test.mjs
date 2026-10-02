@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { isCrossSiteRequest, summarizeUptimeRobot, tailscaleOnline } from "../src/worker.js";
+import { isCrossSiteRequest, summarizeUptimeRobot, tailscaleOnline } from "../src/lib.js";
 
 test("summarizeUptimeRobot counts monitor states", () => {
   const result = summarizeUptimeRobot({
