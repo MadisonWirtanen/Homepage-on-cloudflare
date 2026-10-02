@@ -18,3 +18,47 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm run check
+
+  smoke:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production homepage
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://homepage-on-cloudflare.madisonwirtanen.workers.dev"
+
+          for attempt in {1..12}; do
+            if curl -fsS --max-time 15 "$URL/" -o /tmp/homepage.html               && grep -q '<title>知无涯者</title>' /tmp/homepage.html; then
+              break
+            fi
+            if [ "$attempt" -eq 12 ]; then
+              echo "Homepage smoke test failed"
+              exit 1
+            fi
+            sleep 5
+          done
+
+          curl -fsS --max-time 20 "$URL/api/status" -o /tmp/status.json
+          jq -e '
+            .providers.tailscale.configured == true and
+            .providers.tailscale.ok == true and
+            .providers.cloudflareTunnel.configured == true and
+            .providers.cloudflareTunnel.ok == true and
+            .providers.uptimeRobot.configured == true and
+            .providers.uptimeRobot.ok == true
+          ' /tmp/status.json >/dev/null
+
+          jq '{
+            checkedAt,
+            tailscale: .providers.tailscale.status,
+            cloudflareTunnel: .providers.cloudflareTunnel.status,
+            uptimeRobot: .providers.uptimeRobot.status,
+            sites: (.sites | with_entries(.value = {
+              online: .value.online,
+              status: .value.status,
+              latency: .value.latency
+            }))
+          }' /tmp/status.json
