@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "homepage-on-cloudflare",
+  "main": "./src/worker.js",
+  "compatibility_date": "2026-10-02",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    "DIRECT_SITE_CHECKS": "true",
+    "STATUS_TIMEOUT_MS": "4000",
+    "WORKER_MEMORY_TTL_SECONDS": "60"
+  }
+}
