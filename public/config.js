@@ -1,5 +1,6 @@
 export const APP_CONFIG = {
   title: "知无涯者",
+  language: "zh-CN",
   logo: "https://cdn.003153.xyz/%E7%9F%A5%E6%97%A0%E6%B6%AF%E8%80%85.png",
   background: {
     image: "https://img.003153.xyz/index.php",
