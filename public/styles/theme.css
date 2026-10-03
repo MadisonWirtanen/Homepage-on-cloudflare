@@ -1,222 +1,62 @@
-/* Typography, top widgets and theme-specific refinements. */
-/* ===== 2026-10 segmented control + typography polish ===== */
-
-/* Three utility widgets: equal width, centered content, optical symmetry. */
 .top-widgets {
   display: grid;
-  grid-template-columns: repeat(3, 128px);
-  gap: 8px;
-  align-items: stretch;
+    grid-template-columns: repeat(3, 128px);
+    gap: 8px;
+    align-items: stretch;
 }
 
 .widget-block {
   width: 128px;
-  min-width: 0;
-  min-height: 52px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+    min-width: 0;
+    min-height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 .widget-block strong,
 .widget-block span {
   width: 100%;
-  text-align: center;
+    text-align: center;
 }
 
 .widget-block span {
   overflow: hidden;
-  text-overflow: ellipsis;
+    text-overflow: ellipsis;
 }
 
-/* Robust segmented-control thumb. It is a real draggable element now. */
-.search-providers {
-  position: relative;
-  width: 228px;
-  padding: 3px;
-  gap: 3px;
-  overflow: visible;
-  touch-action: none;
-  user-select: none;
-}
-
-.search-provider {
-  position: relative;
-  z-index: 3;
-  flex: 1 1 0;
-  width: auto;
-  min-width: 0;
-  cursor: pointer;
-}
-
-.search-provider.active {
-  color: #fff;
-  background: transparent;
-  box-shadow: none;
-  cursor: grab;
-}
-
-.search-providers.dragging .search-provider.active {
-  cursor: grabbing;
-}
-
-.search-selection {
-  --drag-scale: 1;
-  --drag-y: 0px;
-  --jelly-origin: center;
-
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  z-index: 1;
-  width: 0;
-  border: 1px solid rgba(118, 191, 232, 0.38);
-  border-radius: 10px;
-  pointer-events: none;
-  transform-origin: var(--jelly-origin);
-  transform: translateY(var(--drag-y)) scaleX(var(--drag-scale));
-  scale: 1 1;
-
-  background:
-    radial-gradient(circle at 34% 4%, rgba(255,255,255,.34), transparent 43%),
-    linear-gradient(145deg, rgba(42, 105, 145, .88), rgba(var(--prussian-rgb), .98));
-
-  -webkit-backdrop-filter:
-    blur(8px)
-    saturate(185%)
-    brightness(.88);
-  backdrop-filter:
-    blur(8px)
-    saturate(185%)
-    brightness(.88);
-
-  filter: url(#lg-refraction-control);
-
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.29),
-    inset 0 -1px 0 rgba(0,0,0,.20),
-    0 5px 16px rgba(0,20,34,.33),
-    0 0 20px rgba(35,126,176,.13);
-
-  transition:
-    left 420ms cubic-bezier(.20,.62,.36,1),
-    width 420ms cubic-bezier(.20,.62,.36,1),
-    transform 200ms cubic-bezier(.22,1,.36,1),
-    scale 350ms cubic-bezier(.34,1.56,.64,1),
-    border-radius 300ms ease,
-    box-shadow 220ms ease;
-}
-
-.search-selection::before {
-  content: "";
-  position: absolute;
-  inset: 1px;
-  border-radius: inherit;
-  pointer-events: none;
-  background:
-    linear-gradient(
-      115deg,
-      rgba(255,255,255,.24) 0%,
-      rgba(255,255,255,.06) 22%,
-      transparent 47%,
-      rgba(87,178,226,.09) 72%,
-      rgba(255,255,255,.10) 100%
-    );
-  mix-blend-mode: screen;
-  opacity: .88;
-}
-
-.search-selection::after {
-  content: "";
-  position: absolute;
-  left: 13%;
-  right: 13%;
-  top: 2px;
-  height: 1px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.52);
-  box-shadow: 0 0 9px rgba(255,255,255,.20);
-  opacity: .78;
-}
-
-.search-selection.jelly {
-  scale: 1.10 1.055;
-  border-radius: 13px;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.36),
-    inset 0 -1px 0 rgba(0,0,0,.16),
-    0 7px 22px rgba(0,22,38,.36),
-    0 0 26px rgba(49,151,207,.21);
-}
-
-.search-selection.no-transition,
-.search-providers.dragging .search-selection {
-  transition:
-    left 0s,
-    width 0s,
-    transform 70ms linear,
-    scale 180ms cubic-bezier(.34,1.56,.64,1),
-    border-radius 180ms ease,
-    box-shadow 120ms ease;
-}
-
-.search-providers.dragging .search-selection {
-  scale: 1.06 1.08;
-  border-radius: 14px;
-}
-
-/* Light theme keeps the Prussian-blue thumb prominent instead of washing it out. */
-html[data-theme="light"] .search-selection {
-  border-color: rgba(0,49,83,.28);
-  background:
-    radial-gradient(circle at 34% 4%, rgba(255,255,255,.43), transparent 43%),
-    linear-gradient(145deg, rgba(48,112,151,.91), rgba(var(--prussian-rgb), .98));
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.39),
-    inset 0 -1px 0 rgba(0,0,0,.13),
-    0 5px 16px rgba(18,55,79,.23),
-    0 0 20px rgba(0,49,83,.10);
-}
-
-/* Light-theme brand: not plain black; dark Prussian ink with a bright optical rim. */
 html[data-theme="light"] .brand h1 {
   color: #0a2940;
-  font-weight: 800;
-  text-shadow:
-    0 1px 0 rgba(255,255,255,.96),
-    0 2px 9px rgba(0,49,83,.22),
-    0 0 24px rgba(255,255,255,.52);
-  -webkit-text-stroke: .18px rgba(0,31,53,.20);
+    font-weight: 800;
+    text-shadow:
+      0 1px 0 rgba(255,255,255,.96),
+      0 2px 9px rgba(0,49,83,.22),
+      0 0 24px rgba(255,255,255,.52);
+    -webkit-text-stroke: .18px rgba(0,31,53,.20);
 }
 
-/* Keep secondary light-theme labels dark without overriding the enhanced brand title. */
 html[data-theme="light"] .widget-block strong,
 html[data-theme="light"] .section-heading h2,
 html[data-theme="light"] .card-title,
 html[data-theme="light"] .metric-value {
   color: rgba(20,31,42,.94);
-  text-shadow: none;
+    text-shadow: none;
 }
 
 @media (max-width: 700px) {
   .top-widgets {
     width: 100%;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .widget-block {
     width: auto;
-    min-width: 0;
+        min-width: 0;
   }
 
   .top-widgets .widget-block:first-child {
     grid-column: auto;
-  }
-
-  .search-providers {
-    width: 100%;
   }
 }

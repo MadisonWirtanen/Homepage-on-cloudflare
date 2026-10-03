@@ -1,8 +1,6 @@
 export const APP_CONFIG = {
   title: "知无涯者",
-  language: "zh-CN",
   logo: "https://cdn.003153.xyz/%E7%9F%A5%E6%97%A0%E6%B6%AF%E8%80%85.png",
-  favicon: "https://cdn.003153.xyz/%E7%9F%A5%E6%97%A0%E6%B6%AF%E8%80%85.png",
   background: {
     image: "https://img.003153.xyz/index.php",
     opacity: 100,
@@ -20,7 +18,6 @@ export const APP_CONFIG = {
     latitude: 30.2936,
     longitude: 120.1614,
     timezone: "auto",
-    units: "metric",
     cacheMinutes: 10,
   },
   statusCacheMinutes: 10,
@@ -56,7 +53,7 @@ export const GROUPS = [
   {
     id: "public",
     title: "Public",
-    icon: "https://cdn.simpleicons.org/safari",
+    icon: "/icons/safari.svg",
     columns: 3,
     items: [
       {
@@ -94,7 +91,7 @@ export const GROUPS = [
       {
         id: "wechat",
         name: "临时聊天室",
-        icon: "https://cdn.simpleicons.org/wechat",
+        icon: "/icons/wechat.svg",
         href: "https://wx.003153.xyz/",
         description: "无上下文记录临时聊天室",
         target: "_blank",
@@ -104,7 +101,7 @@ export const GROUPS = [
   {
     id: "contact",
     title: "Contact",
-    icon: "https://cdn.simpleicons.org/gmail",
+    icon: "/icons/gmail.svg",
     columns: 3,
     items: [
       {
@@ -117,14 +114,14 @@ export const GROUPS = [
       {
         id: "github",
         name: "GitHub",
-        icon: "https://cdn.simpleicons.org/github",
+        icon: "/icons/github.svg",
         href: "https://github.com/MadisonWirtanen",
         target: "_blank",
       },
       {
         id: "email",
         name: "邮箱",
-        icon: "https://cdn.simpleicons.org/gmail",
+        icon: "/icons/gmail.svg",
         href: "mailto:email@知无涯者.com",
       },
     ],
@@ -132,7 +129,7 @@ export const GROUPS = [
   {
     id: "academic",
     title: "学术资源",
-    icon: "https://cdn.simpleicons.org/googlescholar",
+    icon: "/icons/googlescholar.svg",
     columns: 3,
     compact: true,
     items: [
@@ -187,7 +184,7 @@ export const GROUPS = [
   {
     id: "tools",
     title: "网页工具",
-    icon: "https://cdn.simpleicons.org/actix",
+    icon: "/icons/actix.svg",
     columns: 4,
     compact: true,
     items: [
@@ -204,7 +201,7 @@ export const GROUPS = [
   {
     id: "design",
     title: "设计素材",
-    icon: "https://cdn.simpleicons.org/apple",
+    icon: "/icons/apple.svg",
     columns: 3,
     compact: true,
     items: [
@@ -219,7 +216,7 @@ export const GROUPS = [
   {
     id: "entertainment",
     title: "影音娱乐",
-    icon: "https://cdn.simpleicons.org/youtube",
+    icon: "/icons/youtube.svg",
     columns: 4,
     compact: true,
     items: [

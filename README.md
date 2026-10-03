@@ -11,7 +11,7 @@
 ```text
 浏览器
   |
-  +-- /, /app.js, /app.css, /config.js
+  +-- /, /app.js, /styles/*.css, /config.js
   |      -> Cloudflare Static Assets
   |      -> 不执行 Worker
   |
@@ -30,7 +30,7 @@
 "assets": {
   "directory": "./public",
   "binding": "ASSETS",
-  "not_found_handling": "single-page-application",
+  "not_found_handling": "404-page",
   "run_worker_first": ["/api/*"]
 }
 ```
@@ -63,7 +63,7 @@
 
 ### 静态请求不调用 Worker
 
-普通访问 `/`、`/app.js`、`/app.css`、`/config.js` 全部直接命中 Static Assets。
+普通访问 `/`、`/app.js`、`/js/*`、`/styles/*`、`/config.js` 全部直接命中 Static Assets。
 
 ### 所有状态只用一个 API
 
@@ -102,7 +102,7 @@ https://developers.cloudflare.com/workers/configuration/secrets/
 
 - `.gitignore`：排除 `.dev.vars`、`.env` 等本地密钥文件。
 - `scripts-security-check.mjs`：检查常见 UptimeRobot/私钥泄漏模式。
-- GitHub Actions CI：每次提交执行语法检查、单元测试和密钥扫描。
+- GitHub Actions CI：每次提交执行语法检查、单元测试、Gitleaks 密钥扫描与 Playwright 浏览器 E2E。
 
 > 旧配置文件中曾以明文保存 API 凭据。迁移完成后建议把旧的 Cloudflare 和 UptimeRobot 凭据全部轮换，再使用新凭据部署。
 
@@ -291,6 +291,10 @@ public/config.js
 3. UptimeRobot 当前使用兼容现有配置的 v2 `getMonitors` 接口；代码已将其隔离，未来迁移新版 API 不影响前端结构。
 4. 不提供搜索联想词，避免新增代理、CORS 和 Worker 调用。
 
+## 图标与外部依赖
+
+核心导航与分组图标（Safari、Gmail、GitHub、Google Scholar、Actix、Apple、YouTube、WeChat、Cloudflare、Uptime Kuma）已放入 `public/icons/`，不再依赖 Simple Icons CDN。少量第三方站点 favicon 仍使用外部来源，但前端加载失败时会自动降级为文字缩写，不影响导航可用性。
+
 ## 前端模块化与 E2E
 
 前端保持原生 ES Modules，不引入 React / Vue / Next.js。原先集中在 `public/app.js` 的逻辑已经按职责拆分：导航 UI、状态、天气、搜索、主题、液态玻璃、时钟和本地缓存分别维护。
@@ -324,6 +328,9 @@ npm run check
 GitHub Actions 另外执行 Gitleaks 与 Playwright Chromium E2E。
 
 ## Attribution
+
+核心品牌图标来自 [Simple Icons](https://github.com/simple-icons/simple-icons)，以本地 SVG 形式随 Static Assets 提供；各品牌商标归其对应权利人所有。
+
 
 项目思路、原始配置方式与部分交互来源于 [gethomepage/homepage](https://github.com/gethomepage/homepage)。本仓库是针对个人场景重新实现的 Cloudflare-native 版本，并非原项目官方发行版。
 
