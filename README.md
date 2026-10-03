@@ -145,6 +145,8 @@ npx wrangler deploy
 | --- | --- | --- |
 | `CLOUDFLARE_ACCOUNT_ID` | Text | Cloudflare Account ID |
 | `CLOUDFLARE_API_TOKEN` | **Secret** | 仅具 Tunnel Read 权限的 API Token |
+| `TUNNEL_LINUX_NAME` | Text | 可选，默认 `Linux` |
+| `TUNNEL_COLO_NAME` | Text | 可选，默认 `ColoCrossing` |
 
 建议专门新建最小权限 Read-only Token。
 
@@ -172,7 +174,7 @@ npx wrangler deploy
 ```bash
 git clone https://github.com/MadisonWirtanen/Homepage-on-cloudflare.git
 cd Homepage-on-cloudflare
-npm install
+npm ci
 cp .dev.vars.example .dev.vars
 ```
 
@@ -237,13 +239,29 @@ public/config.js
 .
 ├── public/
 │   ├── index.html
-│   ├── app.css
-│   ├── app.js
-│   └── config.js
+│   ├── app.js                 # 轻量入口
+│   ├── config.js
+│   ├── js/
+│   │   ├── ui.js
+│   │   ├── status.js
+│   │   ├── weather.js
+│   │   ├── search.js
+│   │   ├── theme.js
+│   │   ├── liquid-glass.js
+│   │   ├── storage.js
+│   │   └── clock.js
+│   ├── styles/
+│   │   ├── base.css
+│   │   ├── components.css
+│   │   ├── theme.css
+│   │   └── search.css
+│   └── effects/               # 预生成 Liquid Glass 位移贴图
 ├── src/
 │   └── worker.js
 ├── tests/
-│   └── worker.test.mjs
+│   ├── worker.test.mjs
+│   └── e2e/
+│       └── homepage.spec.mjs
 ├── .github/workflows/ci.yml
 ├── .dev.vars.example
 ├── scripts-security-check.mjs
@@ -273,6 +291,22 @@ public/config.js
 3. UptimeRobot 当前使用兼容现有配置的 v2 `getMonitors` 接口；代码已将其隔离，未来迁移新版 API 不影响前端结构。
 4. 不提供搜索联想词，避免新增代理、CORS 和 Worker 调用。
 
+## 前端模块化与 E2E
+
+前端保持原生 ES Modules，不引入 React / Vue / Next.js。原先集中在 `public/app.js` 的逻辑已经按职责拆分：导航 UI、状态、天气、搜索、主题、液态玻璃、时钟和本地缓存分别维护。
+
+Liquid Glass 的三张 displacement map 已经预生成在 `public/effects/`，页面加载时不再用 Canvas 逐像素计算。
+
+Playwright E2E 会在本地 Wrangler 开发服务器上真实验证：
+
+- 百度 / Bing / Google 滑块可见、点击切换与桌面拖动吸附；
+- 深浅主题与 localStorage 持久化；
+- 液态玻璃默认 72%、最大 100% 与持久化；
+- Status 默认折叠并可展开；
+- 顶部三个组件等宽、文字居中；
+- 桌面与移动端无横向溢出；
+- 不存在的路径返回真正的 HTTP 404。
+
 ## 校验
 
 本项目提供：
@@ -283,10 +317,11 @@ npm run check
 
 会执行：
 
-- Worker JS 语法检查；
-- 前端 JS / config 语法检查；
+- Worker 与全部前端 ES Module 语法检查；
 - Node 单元测试；
-- 常见敏感凭据模式扫描。
+- 当前工作树常见敏感凭据模式扫描。
+
+GitHub Actions 另外执行 Gitleaks 与 Playwright Chromium E2E。
 
 ## Attribution
 
@@ -307,6 +342,6 @@ MIT
 - 原 `www` CNAME 到 Cloudflare Tunnel 保留作为快速回滚路径；删除对应 Worker Route 即可恢复旧主页。
 - 此 Cloudflare 账户的 `*.workers.dev` 入口在部署验证时持续返回平台 1101，因此生产环境明确使用自定义域名，不依赖 `workers.dev`。
 - 运行时认证信息存储在 Cloudflare Worker Secrets 中，不保存在 GitHub 仓库。
-- 普通 HTML/CSS/JS 由 Static Assets 直接提供，只有 `/api/*` 进入 Worker。
+- 普通 HTML/CSS/JS 由 Static Assets 直接提供，只有 `/api/*` 进入 Worker。不存在的普通页面使用 Static Assets 的 `404-page` 行为，不再把任意路径伪装成首页 200。
 
 生产 smoke test 位于 `.github/workflows/ci.yml`，会在每次 `main` 推送后验证正式主页、健康接口以及状态聚合接口。
