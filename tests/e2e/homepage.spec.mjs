@@ -372,3 +372,11 @@ test("stale weather remains visible when Open-Meteo is unavailable", async ({ pa
   await expect(page.locator("#weather-extra")).toContainText("缓存");
 });
 
+test("self-hosted brand image is available and used by logo and favicon", async ({ page, request }) => {
+  const response = await request.get("/branding/logo.webp");
+  expect(response.status()).toBe(200);
+  expect((await response.body()).length).toBeGreaterThan(1500);
+  await expect(page.locator("#brand-logo")).toHaveAttribute("src", "/branding/logo.webp");
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", "/branding/logo.webp");
+});
+
