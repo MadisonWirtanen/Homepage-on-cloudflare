@@ -279,10 +279,13 @@ function updateProviderCard(id, provider) {
   const dot = card.querySelector(".status-dot");
   const tone = providerTone(provider);
   dot.className = `status-dot ${tone}`;
-  dot.setAttribute(
-    "aria-label",
-    tone === "good" ? "运行正常" : tone === "bad" ? "运行异常" : "未配置"
-  );
+  const toneLabel = {
+    good: "运行正常",
+    warn: "部分异常",
+    bad: "运行异常",
+    idle: "未配置",
+  };
+  dot.setAttribute("aria-label", toneLabel[tone] || "状态未知");
 
   if (!provider?.configured) {
     setMetrics(card, [
