@@ -290,7 +290,7 @@ function updateProviderCard(id, provider) {
     return;
   }
 
-  if (!provider.ok) {
+  if (!provider.ok && provider.status !== "degraded") {
     setMetrics(card, [
       { label: "状态", value: provider.status === "not_found" ? "未找到" : "异常" },
       { label: "信息", value: provider.error || "连接器不可用" },
@@ -314,16 +314,22 @@ function updateProviderCard(id, provider) {
   }
 }
 
-function applyStatus(payload) {
+function applyStatus(payload, { stale = false, refreshFailed = false } = {}) {
   updateProviderCard("cloudflareLinux", payload?.providers?.cloudflareLinux);
   updateProviderCard("cloudflareColoCrossing", payload?.providers?.cloudflareColoCrossing);
   updateProviderCard("uptimeRobot", payload?.providers?.uptimeRobot);
 
   const updated = document.getElementById("status-updated");
   if (updated) {
-    updated.textContent = payload?.checkedAt
+    const checked = payload?.checkedAt
       ? `检查于 ${new Date(payload.checkedAt).toLocaleTimeString("zh-CN", { hour12: false })}`
       : "状态已更新";
+    const suffix = refreshFailed
+      ? " · 刷新失败，保留缓存"
+      : stale
+        ? " · 数据可能已过期"
+        : "";
+    updated.textContent = `${checked}${suffix}`;
   }
 }
 
