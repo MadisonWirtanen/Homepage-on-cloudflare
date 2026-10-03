@@ -377,6 +377,8 @@ test("self-hosted brand image is available and used by logo and favicon", async 
   expect(response.status()).toBe(200);
   expect((await response.body()).length).toBeGreaterThan(1500);
   await expect(page.locator("#brand-logo")).toHaveAttribute("src", "/branding/logo.webp");
-  await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", "/branding/logo.webp");
+  const favicon = await request.get("/branding/favicon.png");
+  expect(favicon.status()).toBe(200);
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", "/branding/favicon.png");
 });
 
