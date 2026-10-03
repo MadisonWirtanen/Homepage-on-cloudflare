@@ -56,7 +56,7 @@ async function mockExternalData(page) {
 
 test.beforeEach(async ({ page }) => {
   await mockExternalData(page);
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page).toHaveTitle("知无涯者");
 });
 
@@ -123,7 +123,7 @@ test("theme defaults to dark and persists light mode", async ({ page }) => {
   );
   expect(brightness.trim()).toBe("112%");
 
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 });
 
@@ -266,7 +266,7 @@ test("degraded provider uses warning tone instead of failure tone", async ({ pag
     });
   });
   await page.evaluate(() => localStorage.removeItem("homepage-cf-status-v3"));
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
 
   const dot = page.locator('[data-provider-id="uptimeRobot"] .status-dot');
   await expect(dot).toHaveClass(/warn/);
@@ -343,7 +343,7 @@ test("stale status remains visible when refresh fails", async ({ page }) => {
       value: payload,
     }));
   }, statusPayload);
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
 
   await expect(page.locator('[data-provider-id="cloudflareLinux"] .status-dot')).toHaveClass(/good/);
   await expect(page.locator("#status-updated")).toContainText("刷新失败，保留缓存");
@@ -367,7 +367,7 @@ test("stale weather remains visible when Open-Meteo is unavailable", async ({ pa
       },
     }));
   });
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
 
   await expect(page.locator("#weather-value")).toContainText("23°C");
   await expect(page.locator("#weather-extra")).toContainText("缓存");
