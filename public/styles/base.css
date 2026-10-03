@@ -144,16 +144,9 @@ button, a {
     text-shadow: 0 3px 16px rgba(0, 0, 0, 0.34);
 }
 
-.top-widgets {
-  display: flex;
-    align-items: stretch;
-    gap: 8px;
-}
-
 .widget-block {
-  min-width: 112px;
-    padding: 8px 11px;
-    border-radius: 13px;
+  padding: 8px 11px;
+  border-radius: 13px;
 }
 
 .widget-block strong {
@@ -677,18 +670,6 @@ button, a {
     text-align: center;
   }
 
-  .top-widgets {
-    display: grid;
-        grid-template-columns: 1fr 1fr;
-  }
-
-  .top-widgets .widget-block:first-child {
-    grid-column: 1 / -1;
-  }
-
-  .widget-block {
-    min-width: 0;
-  }
 
   .card-grid {
     grid-template-columns: 1fr;
@@ -704,10 +685,6 @@ button, a {
     display: none;
   }
 
-  .glass-tuner {
-    right: 12px;
-        bottom: 12px;
-  }
 }
 
 @media (hover: none), (pointer: coarse) {
