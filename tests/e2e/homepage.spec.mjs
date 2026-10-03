@@ -271,6 +271,7 @@ test("degraded provider uses warning tone instead of failure tone", async ({ pag
   const dot = page.locator('[data-provider-id="uptimeRobot"] .status-dot');
   await expect(dot).toHaveClass(/warn/);
   await expect(dot).not.toHaveClass(/bad/);
+  await expect(dot).toHaveAttribute("aria-label", "部分异常");
 });
 
 test("search action button keeps the same Prussian glass treatment as the selector", async ({ page }) => {
