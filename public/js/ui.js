@@ -7,6 +7,7 @@ function safeText(value, fallback = "--") {
 
 function providerTone(provider) {
   if (!provider?.configured) return "idle";
+  if (provider.status === "degraded") return "warn";
   if (!provider?.ok) return "bad";
   if (["healthy", "up", "online"].includes(provider.status)) return "good";
   return "bad";
