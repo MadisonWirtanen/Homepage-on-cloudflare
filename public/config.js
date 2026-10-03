@@ -1,8 +1,6 @@
 export const APP_CONFIG = {
   title: "知无涯者",
-  language: "zh-CN",
   logo: "https://cdn.003153.xyz/%E7%9F%A5%E6%97%A0%E6%B6%AF%E8%80%85.png",
-  favicon: "https://cdn.003153.xyz/%E7%9F%A5%E6%97%A0%E6%B6%AF%E8%80%85.png",
   background: {
     image: "https://img.003153.xyz/index.php",
     opacity: 100,
@@ -20,7 +18,6 @@ export const APP_CONFIG = {
     latitude: 30.2936,
     longitude: 120.1614,
     timezone: "auto",
-    units: "metric",
     cacheMinutes: 10,
   },
   statusCacheMinutes: 10,
