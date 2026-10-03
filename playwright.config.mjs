@@ -23,6 +23,10 @@ export default defineConfig({
       name: "mobile-chromium",
       use: { ...devices["Pixel 7"] },
     },
+    {
+      name: "mobile-webkit",
+      use: { ...devices["iPhone 14"] },
+    },
   ],
   webServer: {
     command: "npx wrangler dev --port 8787",

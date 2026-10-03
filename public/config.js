@@ -1,6 +1,8 @@
 export const APP_CONFIG = {
   title: "知无涯者",
-  logo: "https://cdn.003153.xyz/%E7%9F%A5%E6%97%A0%E6%B6%AF%E8%80%85.png",
+  language: "zh-CN",
+  logo: "/branding/logo.webp",
+  favicon: "/branding/favicon.png",
   background: {
     image: "https://img.003153.xyz/index.php",
     opacity: 100,
@@ -54,7 +56,7 @@ export const GROUPS = [
     id: "public",
     title: "Public",
     icon: "/icons/safari.svg",
-    columns: 3,
+    columns: 5,
     items: [
       {
         id: "alist",
@@ -107,7 +109,7 @@ export const GROUPS = [
       {
         id: "blog",
         name: "博客",
-        icon: "https://cdn.003153.xyz/%E7%9F%A5%E6%97%A0%E6%B6%AF%E8%80%85.png",
+        icon: "/branding/logo.webp",
         href: "https://blog.xn--rgvt7o95i1ni.com/",
         target: "_blank",
       },

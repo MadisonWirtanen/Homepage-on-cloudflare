@@ -45,7 +45,7 @@ function setupThemeToggle() {
 
 function applyTheme() {
   document.title = APP_CONFIG.title;
-  document.documentElement.lang = APP_CONFIG.language;
+  if (APP_CONFIG.language) document.documentElement.lang = APP_CONFIG.language;
   document.getElementById("page-title").textContent = APP_CONFIG.title;
   document.getElementById("brand-logo").src = APP_CONFIG.logo;
 

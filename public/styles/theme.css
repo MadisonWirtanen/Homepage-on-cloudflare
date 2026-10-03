@@ -1,30 +1,135 @@
-.top-widgets {
-  display: grid;
-    grid-template-columns: repeat(3, 128px);
-    gap: 8px;
-    align-items: stretch;
+/* Theme-only overrides. Component geometry lives in components.css. */
+
+html[data-theme="light"] {
+  --text: #1c2834;
+    --heading: #14212d;
+    --muted: rgba(34, 51, 67, 0.64);
+    color-scheme: light;
+    background: #e9eef3;
 }
 
-.widget-block {
-  width: 128px;
-    min-width: 0;
-    min-height: 52px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
+html[data-theme="light"] body {
+  color: var(--text);
+    background: #e9eef3;
 }
 
-.widget-block strong,
-.widget-block span {
-  width: 100%;
-    text-align: center;
+html[data-theme="light"] body::before {
+  background:
+      radial-gradient(circle at 18% -10%, rgba(var(--prussian-rgb), 0.08), transparent 39%),
+      radial-gradient(circle at 92% 8%, rgba(255,255,255,.30), transparent 31%),
+      linear-gradient(180deg, rgba(255,255,255,.17) 0%, rgba(237,243,248,.30) 48%, rgba(228,235,242,.43) 100%);
 }
 
-.widget-block span {
-  overflow: hidden;
-    text-overflow: ellipsis;
+html[data-theme="light"] .background {
+  filter: saturate(var(--background-saturate, 76%)) brightness(var(--background-brightness, 112%)) contrast(.94);
+}
+
+html[data-theme="light"] .brand h1,
+html[data-theme="light"] .widget-block strong,
+html[data-theme="light"] .section-heading h2,
+html[data-theme="light"] .card-title,
+html[data-theme="light"] .metric-value {
+  color: rgba(20, 31, 42, .94);
+    text-shadow: none;
+}
+
+html[data-theme="light"] .widget-block span,
+html[data-theme="light"] .card-description,
+html[data-theme="light"] .status-description,
+html[data-theme="light"] .muted,
+html[data-theme="light"] .metric-label {
+  color: rgba(39, 56, 73, .61);
+}
+
+html[data-theme="light"] .primary-section,
+html[data-theme="light"] .group-row {
+  border-color: rgba(255,255,255,.62);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.19), rgba(255,255,255,.045)),
+      rgb(242 247 250 / var(--panel-alpha));
+    box-shadow:
+      0 18px 48px rgba(53, 72, 91, .15),
+      inset 0 1px 0 rgba(255,255,255,.72),
+      inset 0 -1px 0 rgba(75, 93, 110, .08);
+}
+
+html[data-theme="light"] .liquid-glass {
+  border-color: rgba(255,255,255,.66);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.82),
+      inset 0 -1px 0 rgba(64,82,99,.09),
+      0 10px 27px rgba(50,68,86,.14);
+}
+
+html[data-theme="light"] .liquid-glass::before {
+  background:
+      linear-gradient(
+        145deg,
+        rgb(255 255 255 / calc(var(--glass-tint-alpha) + .11)) 0%,
+        rgb(255 255 255 / .08) 42%,
+        rgb(235 241 246 / var(--glass-dark-alpha)) 100%
+      );
+    -webkit-backdrop-filter:
+      blur(var(--lg-blur))
+      saturate(128%)
+      brightness(1.06)
+      contrast(.98);
+    backdrop-filter:
+      blur(var(--lg-blur))
+      saturate(128%)
+      brightness(1.06)
+      contrast(.98);
+}
+
+html[data-theme="light"] .liquid-glass::after {
+  background:
+      radial-gradient(
+        175px circle at var(--mx) var(--my),
+        rgba(255,255,255,.42) 0%,
+        rgba(255,255,255,.16) 27%,
+        transparent 64%
+      );
+    box-shadow:
+      inset 0 14px 14px -14px rgba(255,255,255,.82),
+      inset 0 -12px 12px -12px rgba(255,255,255,.48),
+      inset 11px 0 12px -12px rgba(58,75,91,.14),
+      inset -11px 0 12px -12px rgba(58,75,91,.14);
+    mix-blend-mode: soft-light;
+}
+
+html[data-theme="light"] .card-icon,
+html[data-theme="light"] .card-abbr,
+html[data-theme="light"] .metric {
+  background: rgba(255,255,255,.24);
+}
+
+html[data-theme="light"] .status-chevron {
+  border-color: rgba(47,65,82,.43);
+}
+
+html[data-theme="light"] .side-control-button {
+  color: rgba(26,40,53,.91);
+}
+
+html[data-theme="light"] .glass-tuner-panel {
+  border-color: rgba(255,255,255,.72);
+    color: #1d2a36;
+    background: rgba(242,247,250,.93);
+    box-shadow:
+      0 18px 42px rgba(58,76,94,.20),
+      inset 0 1px 0 rgba(255,255,255,.80);
+}
+
+html[data-theme="light"] .glass-tuner-heading {
+  color: rgba(29,43,56,.80);
+}
+
+html[data-theme="light"] .glass-tuner-heading strong {
+  color: #14212d;
+}
+
+html[data-theme="light"] .glass-tuner-scale {
+  color: rgba(45,61,77,.50);
 }
 
 html[data-theme="light"] .brand h1 {
@@ -35,28 +140,4 @@ html[data-theme="light"] .brand h1 {
       0 2px 9px rgba(0,49,83,.22),
       0 0 24px rgba(255,255,255,.52);
     -webkit-text-stroke: .18px rgba(0,31,53,.20);
-}
-
-html[data-theme="light"] .widget-block strong,
-html[data-theme="light"] .section-heading h2,
-html[data-theme="light"] .card-title,
-html[data-theme="light"] .metric-value {
-  color: rgba(20,31,42,.94);
-    text-shadow: none;
-}
-
-@media (max-width: 700px) {
-  .top-widgets {
-    width: 100%;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .widget-block {
-    width: auto;
-        min-width: 0;
-  }
-
-  .top-widgets .widget-block:first-child {
-    grid-column: auto;
-  }
 }

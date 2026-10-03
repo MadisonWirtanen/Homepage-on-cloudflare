@@ -5,13 +5,15 @@
   "type": "module",
   "description": "Cloudflare-native personal homepage with static assets and a minimal status Worker.",
   "scripts": {
-    "check:syntax": "node --check src/worker.js && node --check public/config.js && node --check public/app.js && node --check public/js/ui.js && node --check public/js/storage.js && node --check public/js/status.js && node --check public/js/weather.js && node --check public/js/clock.js && node --check public/js/search.js && node --check public/js/liquid-glass.js && node --check public/js/theme.js",
+    "check:syntax": "node --check scripts-build-meta.mjs && node --check src/worker.js && node --check public/config.js && node --check public/app.js && node --check public/js/ui.js && node --check public/js/storage.js && node --check public/js/status.js && node --check public/js/weather.js && node --check public/js/clock.js && node --check public/js/search.js && node --check public/js/liquid-glass.js && node --check public/js/theme.js",
     "test:unit": "node --test tests/*.test.mjs",
     "security:scan": "node scripts-security-check.mjs",
-    "check": "npm run check:syntax && npm run test:unit && npm run security:scan",
+    "check": "npm run build:meta && npm run check:syntax && npm run test:unit && npm run security:scan",
     "test:e2e": "playwright test",
     "dev": "wrangler dev",
-    "deploy": "npm run check && wrangler deploy"
+    "deploy": "npm run check && wrangler deploy",
+    "build:meta": "node scripts-build-meta.mjs",
+    "pretest:e2e": "npm run build:meta"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

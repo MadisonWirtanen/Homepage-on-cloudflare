@@ -1,5 +1,5 @@
 import { APP_CONFIG } from "../config.js";
-import { readCache, writeCache } from "./storage.js";
+import { readCacheEntry, writeCache } from "./storage.js";
 
 const WEATHER_CACHE_KEY = "homepage-cf-weather-v1";
 
@@ -16,39 +16,48 @@ function weatherCodeText(code) {
 async function updateWeather() {
   const weather = APP_CONFIG.weather;
   const maxAgeMs = weather.cacheMinutes * 60_000;
-  let payload = readCache(WEATHER_CACHE_KEY, maxAgeMs);
+  const cached = readCacheEntry(WEATHER_CACHE_KEY, maxAgeMs);
 
-  if (!payload) {
-    const params = new URLSearchParams({
-      latitude: String(weather.latitude),
-      longitude: String(weather.longitude),
-      current: "temperature_2m,weather_code,apparent_temperature",
-      timezone: weather.timezone,
-    });
+  const render = (payload, { stale = false } = {}) => {
+    const current = payload?.current || {};
+    const temp = Number.isFinite(current.temperature_2m) ? `${Math.round(current.temperature_2m)}°C` : "--";
+    document.getElementById("weather-value").textContent = `${temp} · ${weatherCodeText(current.weather_code)}`;
+    const apparent = Number.isFinite(current.apparent_temperature)
+      ? `${Math.round(current.apparent_temperature)}°C`
+      : "--";
+    document.getElementById("weather-extra").textContent =
+      `${weather.label} · 体感 ${apparent}${stale ? " · 缓存" : ""}`;
+  };
 
-    if (weather.units === "imperial") {
-      params.set("temperature_unit", "fahrenheit");
-      params.set("wind_speed_unit", "mph");
-      params.set("precipitation_unit", "inch");
-    }
-
-    try {
-      const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      payload = await response.json();
-      writeCache(WEATHER_CACHE_KEY, payload);
-    } catch {
-      document.getElementById("weather-value").textContent = "--";
-      document.getElementById("weather-extra").textContent = weather.label;
-      return;
-    }
+  if (cached) {
+    render(cached.value, { stale: cached.isStale });
+    if (!cached.isStale) return;
   }
 
-  const current = payload.current || {};
-  const temp = Number.isFinite(current.temperature_2m) ? `${Math.round(current.temperature_2m)}°C` : "--";
-  document.getElementById("weather-value").textContent = `${temp} · ${weatherCodeText(current.weather_code)}`;
-  document.getElementById("weather-extra").textContent =
-    `${weather.label} · 体感 ${Number.isFinite(current.apparent_temperature) ? `${Math.round(current.apparent_temperature)}°C` : "--"}`;
-}
+  const params = new URLSearchParams({
+    latitude: String(weather.latitude),
+    longitude: String(weather.longitude),
+    current: "temperature_2m,weather_code,apparent_temperature",
+    timezone: weather.timezone,
+  });
 
+  if (weather.units === "imperial") {
+    params.set("temperature_unit", "fahrenheit");
+    params.set("wind_speed_unit", "mph");
+    params.set("precipitation_unit", "inch");
+  }
+
+  try {
+    const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    writeCache(WEATHER_CACHE_KEY, payload);
+    render(payload);
+  } catch {
+    if (!cached?.value) {
+      document.getElementById("weather-value").textContent = "--";
+      document.getElementById("weather-extra").textContent = weather.label;
+    }
+  }
+}
 export { updateWeather };

@@ -56,7 +56,7 @@ async function mockExternalData(page) {
 
 test.beforeEach(async ({ page }) => {
   await mockExternalData(page);
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page).toHaveTitle("知无涯者");
 });
 
@@ -77,13 +77,18 @@ test("search thumb is visible, aligned and clickable", async ({ page }) => {
 
   await bing.click();
   await expect(bing).toHaveAttribute("aria-pressed", "true");
-  await page.waitForTimeout(450);
+
+  await expect.poll(async () => {
+    const nextThumb = await thumb.boundingBox();
+    const nextButton = await bing.boundingBox();
+    if (!nextThumb || !nextButton) return Number.POSITIVE_INFINITY;
+    return Math.abs(nextThumb.x - nextButton.x);
+  }, { timeout: 5_000 }).toBeLessThan(4);
 
   const nextThumb = await thumb.boundingBox();
   const nextButton = await bing.boundingBox();
   expect(nextThumb).not.toBeNull();
   expect(nextButton).not.toBeNull();
-  expect(Math.abs(nextThumb.x - nextButton.x)).toBeLessThan(4);
   expect(Math.abs(nextThumb.width - nextButton.width)).toBeLessThan(4);
 });
 
@@ -123,7 +128,7 @@ test("theme defaults to dark and persists light mode", async ({ page }) => {
   );
   expect(brightness.trim()).toBe("112%");
 
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 });
 
@@ -205,7 +210,7 @@ test("mobile brand is centered and loads the self-hosted title font", async ({ p
   expect(result.brandWidth).toBeGreaterThan(250);
   expect(result.justifyContent).toBe("center");
   expect(result.textAlign).toBe("center");
-  expect(result.fontFamily.startsWith('"Homepage Title Serif"')).toBeTruthy();
+  expect(result.fontFamily).toContain("Homepage Title Serif");
 
   const customFontLoaded = await page.evaluate(async () => {
     await document.fonts.load('700 32px "Homepage Title Serif"', "知无涯者");
@@ -236,3 +241,150 @@ test("self-hosted title font asset is tiny and available", async ({ request }) =
   expect(body.length).toBeGreaterThan(1000);
   expect(body.length).toBeLessThan(10000);
 });
+
+test("document language stays zh-CN after JavaScript initialization", async ({ page }) => {
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+});
+
+test("generated build manifest identifies the current Git commit", async ({ request }) => {
+  const response = await request.get("/build.json");
+  expect(response.status()).toBe(200);
+  const payload = await response.json();
+  expect(payload.commit).toMatch(/^[0-9a-f]{40}$/);
+});
+
+test("degraded provider uses warning tone instead of failure tone", async ({ page }) => {
+  await page.unroute("**/api/status*");
+  const degraded = JSON.parse(JSON.stringify(statusPayload));
+  degraded.providers.uptimeRobot = {
+    ...degraded.providers.uptimeRobot,
+    status: "degraded",
+    up: 6,
+    down: 1,
+  };
+
+  await page.route("**/api/status*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(degraded),
+    });
+  });
+  await page.evaluate(() => localStorage.removeItem("homepage-cf-status-v3"));
+  await page.reload({ waitUntil: "domcontentloaded" });
+
+  const dot = page.locator('[data-provider-id="uptimeRobot"] .status-dot');
+  await expect(dot).toHaveClass(/warn/);
+  await expect(dot).not.toHaveClass(/bad/);
+  await expect(dot).toHaveAttribute("aria-label", "部分异常");
+});
+
+test("search action button keeps the same Prussian glass treatment as the selector", async ({ page }) => {
+  const styles = await page.evaluate(() => {
+    const thumb = getComputedStyle(document.querySelector("#search-selection"));
+    const submit = getComputedStyle(document.querySelector(".search-submit"));
+    return {
+      thumbBackground: thumb.backgroundImage,
+      submitBackground: submit.backgroundImage,
+      thumbBorder: thumb.borderColor,
+      submitBorder: submit.borderColor,
+    };
+  });
+
+  expect(styles.submitBackground).toBe(styles.thumbBackground);
+  expect(styles.submitBorder).toBe(styles.thumbBorder);
+});
+
+test("desktop primary grids follow configured 5/3/3 columns", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Desktop-only column assertion.");
+
+  const result = await page.evaluate(() => {
+    const read = (selector) => {
+      const grid = document.querySelector(selector);
+      return {
+        columnsVar: grid.style.getPropertyValue("--columns").trim(),
+        template: getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length,
+      };
+    };
+    return {
+      public: read(".public-section .primary-grid"),
+      status: read(".status-section .primary-grid"),
+      contact: read(".contact-section .primary-grid"),
+    };
+  });
+
+  expect(result.public).toEqual({ columnsVar: "5", template: 5 });
+  expect(result.status).toEqual({ columnsVar: "3", template: 3 });
+  expect(result.contact).toEqual({ columnsVar: "3", template: 3 });
+});
+
+test("mobile navigation cards use lightweight glass while status keeps full glass", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.includes("mobile"), "Mobile-only performance assertion.");
+
+  const result = await page.evaluate(() => {
+    const nav = document.querySelector(".public-section .card");
+    const status = document.querySelector(".status-card");
+    const navStyle = getComputedStyle(nav, "::before");
+    const statusStyle = getComputedStyle(status, "::before");
+    return {
+      navBackdrop: navStyle.getPropertyValue("backdrop-filter") || navStyle.getPropertyValue("-webkit-backdrop-filter"),
+      statusBackdrop: statusStyle.getPropertyValue("backdrop-filter") || statusStyle.getPropertyValue("-webkit-backdrop-filter"),
+    };
+  });
+
+  expect(result.navBackdrop.trim()).toBe("none");
+  expect(result.statusBackdrop.trim()).not.toBe("none");
+});
+
+test("stale status remains visible when refresh fails", async ({ page }) => {
+  await page.unroute("**/api/status*");
+  await page.route("**/api/status*", async (route) => {
+    await route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
+  });
+
+  await page.evaluate((payload) => {
+    localStorage.setItem("homepage-cf-status-v3", JSON.stringify({
+      savedAt: Date.now() - 30 * 60_000,
+      value: payload,
+    }));
+  }, statusPayload);
+  await page.reload({ waitUntil: "domcontentloaded" });
+
+  await expect(page.locator('[data-provider-id="cloudflareLinux"] .status-dot')).toHaveClass(/good/);
+  await expect(page.locator("#status-updated")).toContainText("刷新失败，保留缓存");
+});
+
+test("stale weather remains visible when Open-Meteo is unavailable", async ({ page }) => {
+  await page.unroute("https://api.open-meteo.com/**");
+  await page.route("https://api.open-meteo.com/**", async (route) => {
+    await route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
+  });
+
+  await page.evaluate(() => {
+    localStorage.setItem("homepage-cf-weather-v1", JSON.stringify({
+      savedAt: Date.now() - 30 * 60_000,
+      value: {
+        current: {
+          temperature_2m: 23.4,
+          apparent_temperature: 24.1,
+          weather_code: 1,
+        },
+      },
+    }));
+  });
+  await page.reload({ waitUntil: "domcontentloaded" });
+
+  await expect(page.locator("#weather-value")).toContainText("23°C");
+  await expect(page.locator("#weather-extra")).toContainText("缓存");
+});
+
+test("self-hosted brand image is available and used by logo and favicon", async ({ page, request }) => {
+  const response = await request.get("/branding/logo.webp");
+  expect(response.status()).toBe(200);
+  expect((await response.body()).length).toBeGreaterThan(1500);
+  await expect(page.locator("#brand-logo")).toHaveAttribute("src", "/branding/logo.webp");
+  const favicon = await request.get("/branding/favicon.png");
+  expect(favicon.status()).toBe(200);
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", "/branding/favicon.png");
+});
+

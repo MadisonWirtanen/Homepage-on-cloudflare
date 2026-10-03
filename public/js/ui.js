@@ -7,6 +7,7 @@ function safeText(value, fallback = "--") {
 
 function providerTone(provider) {
   if (!provider?.configured) return "idle";
+  if (provider.status === "degraded") return "warn";
   if (!provider?.ok) return "bad";
   if (["healthy", "up", "online"].includes(provider.status)) return "good";
   return "bad";
@@ -110,7 +111,7 @@ function createGroupSection(group, { primary = false } = {}) {
 
   const grid = document.createElement("div");
   grid.className = primary ? "primary-grid" : "card-grid";
-  if (!primary) grid.style.setProperty("--columns", String(group.columns || 3));
+  grid.style.setProperty("--columns", String(group.columns || 3));
   group.items.forEach((item) => grid.appendChild(createServiceCard(item)));
   section.appendChild(grid);
   return section;
@@ -130,6 +131,7 @@ function createStatusSection() {
   refresh.className = "ghost-button";
   refresh.type = "button";
   refresh.textContent = "刷新";
+  refresh.title = "60 秒内可能复用服务端最近一次状态结果";
 
   actions.append(updated, refresh);
 
@@ -146,6 +148,7 @@ function createStatusSection() {
   const grid = document.createElement("div");
   grid.id = "status-grid";
   grid.className = "primary-grid";
+  grid.style.setProperty("--columns", "3");
   section.appendChild(grid);
   return section;
 }
@@ -276,10 +279,13 @@ function updateProviderCard(id, provider) {
   const dot = card.querySelector(".status-dot");
   const tone = providerTone(provider);
   dot.className = `status-dot ${tone}`;
-  dot.setAttribute(
-    "aria-label",
-    tone === "good" ? "运行正常" : tone === "bad" ? "运行异常" : "未配置"
-  );
+  const toneLabel = {
+    good: "运行正常",
+    warn: "部分异常",
+    bad: "运行异常",
+    idle: "未配置",
+  };
+  dot.setAttribute("aria-label", toneLabel[tone] || "状态未知");
 
   if (!provider?.configured) {
     setMetrics(card, [
@@ -289,7 +295,7 @@ function updateProviderCard(id, provider) {
     return;
   }
 
-  if (!provider.ok) {
+  if (!provider.ok && provider.status !== "degraded") {
     setMetrics(card, [
       { label: "状态", value: provider.status === "not_found" ? "未找到" : "异常" },
       { label: "信息", value: provider.error || "连接器不可用" },
@@ -313,16 +319,22 @@ function updateProviderCard(id, provider) {
   }
 }
 
-function applyStatus(payload) {
+function applyStatus(payload, { stale = false, refreshFailed = false } = {}) {
   updateProviderCard("cloudflareLinux", payload?.providers?.cloudflareLinux);
   updateProviderCard("cloudflareColoCrossing", payload?.providers?.cloudflareColoCrossing);
   updateProviderCard("uptimeRobot", payload?.providers?.uptimeRobot);
 
   const updated = document.getElementById("status-updated");
   if (updated) {
-    updated.textContent = payload?.checkedAt
+    const checked = payload?.checkedAt
       ? `检查于 ${new Date(payload.checkedAt).toLocaleTimeString("zh-CN", { hour12: false })}`
       : "状态已更新";
+    const suffix = refreshFailed
+      ? " · 刷新失败，保留缓存"
+      : stale
+        ? " · 数据可能已过期"
+        : "";
+    updated.textContent = `${checked}${suffix}`;
   }
 }
 
