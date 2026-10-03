@@ -15,21 +15,24 @@
         document.documentElement.dataset.theme = "dark";
       }
     </script>
-    <link rel="stylesheet" href="/app.css" />
+    <link rel="stylesheet" href="/styles/base.css" />
+    <link rel="stylesheet" href="/styles/components.css" />
+    <link rel="stylesheet" href="/styles/theme.css" />
+    <link rel="stylesheet" href="/styles/search.css" />
   </head>
   <body>
     <svg class="liquid-glass-defs" aria-hidden="true" focusable="false">
       <defs>
         <filter id="lg-refraction-pill" x="-12%" y="-45%" width="124%" height="190%" color-interpolation-filters="sRGB">
-          <feImage id="lg-map-pill" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
+          <feImage id="lg-map-pill" href="/effects/glass-pill.png" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
           <feDisplacementMap in="SourceGraphic" in2="map" scale="-32" xChannelSelector="R" yChannelSelector="G" />
         </filter>
         <filter id="lg-refraction-card" x="-16%" y="-38%" width="132%" height="176%" color-interpolation-filters="sRGB">
-          <feImage id="lg-map-card" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
+          <feImage id="lg-map-card" href="/effects/glass-card.png" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
           <feDisplacementMap in="SourceGraphic" in2="map" scale="-26" xChannelSelector="R" yChannelSelector="G" />
         </filter>
         <filter id="lg-refraction-control" x="-18%" y="-40%" width="136%" height="180%" color-interpolation-filters="sRGB">
-          <feImage id="lg-map-control" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
+          <feImage id="lg-map-control" href="/effects/glass-control.png" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
           <feDisplacementMap in="SourceGraphic" in2="map" scale="-22" xChannelSelector="R" yChannelSelector="G" />
         </filter>
       </defs>
