@@ -352,3 +352,8 @@ MIT
 - 普通 HTML/CSS/JS 由 Static Assets 直接提供，只有 `/api/*` 进入 Worker。不存在的普通页面使用 Static Assets 的 `404-page` 行为，不再把任意路径伪装成首页 200。
 
 生产 smoke test 位于 `.github/workflows/ci.yml`，会在每次 `main` 推送后验证正式主页、健康接口以及状态聚合接口。
+
+
+## Title font
+
+移动端“知无涯者”标题使用项目自托管的 Noto Serif SC 700 子集，仅包含“知无涯者”四个汉字。字体文件位于 `public/fonts/homepage-title-serif.woff2`，约 2.4 KB，依据 SIL Open Font License 1.1 使用；许可证保存在 `public/fonts/OFL-NotoSerifSC.txt`。
