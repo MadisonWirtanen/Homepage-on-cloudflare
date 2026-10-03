@@ -705,6 +705,16 @@ button, a {
         gap: 12px;
   }
 
+  .brand {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .brand h1 {
+    font-family: ui-serif, "Songti SC", "STSong", serif;
+    text-align: center;
+  }
+
   .top-widgets {
     display: grid;
         grid-template-columns: 1fr 1fr;

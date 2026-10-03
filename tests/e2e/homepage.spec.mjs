@@ -175,6 +175,40 @@ test("top widgets stay equal width and centered", async ({ page }) => {
   for (const item of metrics) expect(item.textAlign).toBe("center");
 });
 
+test("mobile brand is centered and uses the iOS-safe serif stack", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.includes("mobile"), "Mobile-only layout assertion.");
+
+  const result = await page.locator(".brand").evaluate((brand) => {
+    const title = brand.querySelector("h1");
+    const logo = brand.querySelector(".brand-logo");
+    const brandRect = brand.getBoundingClientRect();
+    const titleRect = title.getBoundingClientRect();
+    const logoRect = logo.getBoundingClientRect();
+    const titleStyle = getComputedStyle(title);
+    const brandStyle = getComputedStyle(brand);
+
+    const groupLeft = Math.min(logoRect.left, titleRect.left);
+    const groupRight = Math.max(logoRect.right, titleRect.right);
+    const groupCenter = (groupLeft + groupRight) / 2;
+
+    return {
+      viewportCenter: window.innerWidth / 2,
+      groupCenter,
+      brandWidth: brandRect.width,
+      justifyContent: brandStyle.justifyContent,
+      textAlign: titleStyle.textAlign,
+      fontFamily: titleStyle.fontFamily,
+    };
+  });
+
+  expect(Math.abs(result.groupCenter - result.viewportCenter)).toBeLessThan(3);
+  expect(result.brandWidth).toBeGreaterThan(250);
+  expect(result.justifyContent).toBe("center");
+  expect(result.textAlign).toBe("center");
+  expect(result.fontFamily).toContain("ui-serif");
+  expect(result.fontFamily).toContain("Songti SC");
+});
+
 test("layout does not create horizontal overflow", async ({ page }) => {
   const overflow = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
