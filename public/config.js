@@ -2,7 +2,7 @@ export const APP_CONFIG = {
   title: "知无涯者",
   language: "zh-CN",
   logo: "/branding/logo.webp",
-  favicon: "/branding/logo.webp",
+  favicon: "/branding/favicon.png",
   background: {
     image: "https://img.003153.xyz/index.php",
     opacity: 100,
