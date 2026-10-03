@@ -443,51 +443,238 @@ function startClock() {
 
 function setupSearch() {
   const providersRoot = document.getElementById("search-providers");
+  const selection = document.getElementById("search-selection");
   const form = document.getElementById("search-form");
   const input = document.getElementById("search-input");
-  let selectedId = APP_CONFIG.searchProviders[0]?.id;
+  const providers = APP_CONFIG.searchProviders;
+  let selectedIndex = 0;
+  let dragging = false;
+  let dragPointerId = null;
+  let dragOffsetX = 0;
+  let suppressClickUntil = 0;
+  let lastDragX = 0;
+  let lastDragTime = 0;
 
-  function selectProvider(id) {
-    selectedId = id;
-    providersRoot.querySelectorAll(".search-provider").forEach((button) => {
-      const active = button.dataset.providerId === selectedId;
+  function getButtons() {
+    return [...providersRoot.querySelectorAll(".search-provider")];
+  }
+
+  function getMetrics() {
+    const count = Math.max(providers.length, 1);
+    const styles = getComputedStyle(providersRoot);
+    const paddingLeft = Number.parseFloat(styles.paddingLeft) || 0;
+    const paddingRight = Number.parseFloat(styles.paddingRight) || 0;
+    const gap = Number.parseFloat(styles.columnGap) || Number.parseFloat(styles.gap) || 0;
+    const innerWidth = Math.max(0, providersRoot.clientWidth - paddingLeft - paddingRight);
+    const width = Math.max(0, (innerWidth - gap * (count - 1)) / count);
+
+    return {
+      count,
+      paddingLeft,
+      gap,
+      width,
+      step: width + gap,
+      maxLeft: paddingLeft + (count - 1) * (width + gap),
+    };
+  }
+
+  function setActive(index) {
+    selectedIndex = Math.max(0, Math.min(providers.length - 1, index));
+    getButtons().forEach((button, buttonIndex) => {
+      const active = buttonIndex === selectedIndex;
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", String(active));
     });
   }
 
-  for (const provider of APP_CONFIG.searchProviders) {
+  function setThumb(left, width, { immediate = false } = {}) {
+    if (!selection) return;
+
+    if (immediate) selection.classList.add("no-transition");
+    selection.style.left = `${left}px`;
+    selection.style.width = `${width}px`;
+
+    if (immediate) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => selection.classList.remove("no-transition"));
+      });
+    }
+  }
+
+  function settleLiquidState(delay = 430) {
+    window.setTimeout(() => {
+      selection?.classList.remove("jelly");
+      providersRoot.classList.remove("liquid-active");
+    }, delay);
+  }
+
+  function snapTo(index, { immediate = false, liquid = true } = {}) {
+    const metrics = getMetrics();
+    const nextIndex = Math.max(0, Math.min(metrics.count - 1, index));
+    const direction = Math.sign(nextIndex - selectedIndex);
+
+    setActive(nextIndex);
+
+    if (liquid && !immediate && selection) {
+      providersRoot.classList.add("liquid-active");
+      selection.classList.add("jelly");
+      selection.style.setProperty("--jelly-origin", direction < 0 ? "right center" : "left center");
+      settleLiquidState();
+    }
+
+    setThumb(metrics.paddingLeft + nextIndex * metrics.step, metrics.width, { immediate });
+  }
+
+  function nearestIndex() {
+    const metrics = getMetrics();
+    const left = Number.parseFloat(selection?.style.left) || metrics.paddingLeft;
+    const width = Number.parseFloat(selection?.style.width) || metrics.width;
+    const center = left + width / 2;
+    const firstCenter = metrics.paddingLeft + metrics.width / 2;
+
+    return Math.max(
+      0,
+      Math.min(metrics.count - 1, Math.round((center - firstCenter) / metrics.step))
+    );
+  }
+
+  function beginDrag(event) {
+    if (!selection) return;
+
+    const metrics = getMetrics();
+    const rootRect = providersRoot.getBoundingClientRect();
+    const currentLeft =
+      Number.parseFloat(selection.style.left) ||
+      metrics.paddingLeft + selectedIndex * metrics.step;
+    const pointerX = event.clientX - rootRect.left;
+
+    dragging = true;
+    dragPointerId = event.pointerId;
+    dragOffsetX = Math.max(0, Math.min(metrics.width, pointerX - currentLeft));
+    lastDragX = event.clientX;
+    lastDragTime = performance.now();
+
+    providersRoot.classList.add("dragging", "liquid-active");
+    selection.classList.add("jelly");
+    selection.style.setProperty("--jelly-origin", "center");
+    selection.style.setProperty("--drag-scale", "1.06");
+    selection.style.setProperty("--drag-y", "0px");
+
+    providersRoot.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  }
+
+  function moveDrag(event) {
+    if (!dragging || event.pointerId !== dragPointerId || !selection) return;
+
+    const now = performance.now();
+    const deltaTime = Math.max(1, now - lastDragTime);
+    const deltaX = event.clientX - lastDragX;
+    const velocity = Math.abs(deltaX / deltaTime);
+
+    const metrics = getMetrics();
+    const rootRect = providersRoot.getBoundingClientRect();
+    const rawLeft = event.clientX - rootRect.left - dragOffsetX;
+    const clampedLeft = Math.max(metrics.paddingLeft, Math.min(metrics.maxLeft, rawLeft));
+
+    const stretch = Math.min(1.18, 1.04 + velocity * 0.16);
+    const verticalOffset = Math.max(
+      -6,
+      Math.min(6, event.clientY - (rootRect.top + rootRect.height / 2))
+    );
+
+    selection.style.left = `${clampedLeft}px`;
+    selection.style.width = `${metrics.width}px`;
+    selection.style.setProperty("--drag-scale", stretch.toFixed(3));
+    selection.style.setProperty("--drag-y", `${(verticalOffset * 0.34).toFixed(1)}px`);
+
+    lastDragX = event.clientX;
+    lastDragTime = now;
+  }
+
+  function endDrag(event) {
+    if (!dragging) return;
+    if (event.pointerId !== undefined && event.pointerId !== dragPointerId) return;
+
+    dragging = false;
+    suppressClickUntil = performance.now() + 180;
+
+    providersRoot.classList.remove("dragging");
+    selection?.style.setProperty("--drag-scale", "1");
+    selection?.style.setProperty("--drag-y", "0px");
+
+    const targetIndex = nearestIndex();
+    snapTo(targetIndex, { liquid: true });
+
+    try {
+      providersRoot.releasePointerCapture?.(dragPointerId);
+    } catch {
+      // Pointer capture can be released automatically by the browser.
+    }
+
+    dragPointerId = null;
+  }
+
+  providers.forEach((provider, index) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "search-provider";
     button.dataset.providerId = provider.id;
     button.textContent = provider.label;
     button.setAttribute("aria-pressed", "false");
+
+    button.addEventListener("pointerdown", (event) => {
+      if (index !== selectedIndex) {
+        event.preventDefault();
+        snapTo(index, { liquid: true });
+        input.focus();
+        return;
+      }
+
+      beginDrag(event);
+    });
+
     button.addEventListener("click", () => {
-      selectProvider(provider.id);
+      if (performance.now() < suppressClickUntil) return;
+      if (index !== selectedIndex) snapTo(index, { liquid: true });
       input.focus();
     });
-    providersRoot.appendChild(button);
-  }
 
-  selectProvider(selectedId);
+    providersRoot.appendChild(button);
+  });
+
+  providersRoot.addEventListener("pointermove", moveDrag);
+  providersRoot.addEventListener("pointerup", endDrag);
+  providersRoot.addEventListener("pointercancel", endDrag);
+
+  providersRoot.addEventListener("pointerdown", (event) => {
+    if (event.target.closest(".search-provider")) return;
+    beginDrag(event);
+  });
+
+  requestAnimationFrame(() => snapTo(0, { immediate: true, liquid: false }));
+
+  window.addEventListener("resize", () => {
+    snapTo(selectedIndex, { immediate: true, liquid: false });
+  });
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
+
     const query = input.value.trim();
     if (!query) {
       input.focus();
       return;
     }
 
-    const provider =
-      APP_CONFIG.searchProviders.find((item) => item.id === selectedId) ||
-      APP_CONFIG.searchProviders[0];
-
-    window.open(`${provider.url}${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer");
+    const provider = providers[selectedIndex] || providers[0];
+    window.open(
+      `${provider.url}${encodeURIComponent(query)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
   });
 }
-
 
 function roundedRectSdf(x, y, width, height, radius) {
   const cx = width / 2;
