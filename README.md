@@ -77,7 +77,7 @@ Worker 每次状态刷新只调用一次 Cloudflare Tunnel 列表 API，同时�
 
 ### 浏览器缓存 10 分钟
 
-同一浏览器在 10 分钟内重复打开主页，会优先使用 `localStorage` 中的状态结果，不重新调用 Worker。点击“刷新状态”可以主动刷新。
+同一浏览器在 10 分钟内重复打开主页，会优先使用 `localStorage` 中的状态结果，不重新调用 Worker。缓存过期后，页面会先保留最后一次成功结果并尝试后台刷新；如果上游 API 暂时失败，会明确标记缓存/过期状态，而不是把已有信息清空。点击“刷新状态”会绕过浏览器缓存，但 60 秒内仍可能复用 Worker 最近一次内存结果。
 
 ### Worker 内存缓存 60 秒
 
@@ -299,15 +299,21 @@ public/config.js
 
 前端保持原生 ES Modules，不引入 React / Vue / Next.js。原先集中在 `public/app.js` 的逻辑已经按职责拆分：导航 UI、状态、天气、搜索、主题、液态玻璃、时钟和本地缓存分别维护。
 
-Liquid Glass 的三张 displacement map 已经预生成在 `public/effects/`，页面加载时不再用 Canvas 逐像素计算。
+Liquid Glass 的三张 displacement map 已经预生成在 `public/effects/`，页面加载时不再用 Canvas 逐像素计算。手机/触屏设备上的普通导航卡片会关闭高成本的 per-card backdrop blur，仅保留轻量玻璃边缘、高光和透明材质；搜索、顶部组件、Status 和侧边控制器继续保留完整效果。
 
 Playwright E2E 会在本地 Wrangler 开发服务器上真实验证：
 
+- Desktop Chromium、Mobile Chromium，以及 iPhone WebKit；
 - 百度 / Bing / Google 滑块可见、点击切换与桌面拖动吸附；
+- 搜索按钮与搜索滑块保持同一套普鲁士蓝玻璃材质；
 - 深浅主题与 localStorage 持久化；
 - 液态玻璃默认 72%、最大 100% 与持久化；
-- Status 默认折叠并可展开；
+- 普通移动端导航卡片使用轻量玻璃，Status 等关键组件保留完整玻璃；
+- Status 默认折叠并可展开，degraded 状态使用黄色提示；
+- Status / 天气在上游失败时保留过期缓存；
 - 顶部三个组件等宽、文字居中；
+- Public / Status / Contact 桌面端分别保持 5 / 3 / 3 列；
+- 移动端 Logo + 标题整体居中，自托管标题字体实际加载；
 - 桌面与移动端无横向溢出；
 - 不存在的路径返回真正的 HTTP 404。
 
@@ -351,7 +357,7 @@ MIT
 - 运行时认证信息存储在 Cloudflare Worker Secrets 中，不保存在 GitHub 仓库。
 - 普通 HTML/CSS/JS 由 Static Assets 直接提供，只有 `/api/*` 进入 Worker。不存在的普通页面使用 Static Assets 的 `404-page` 行为，不再把任意路径伪装成首页 200。
 
-生产 smoke test 位于 `.github/workflows/ci.yml`，会在每次 `main` 推送后验证正式主页、健康接口以及状态聚合接口。
+生产 smoke test 位于 `.github/workflows/ci.yml`，会在每次 `main` 推送后验证正式主页、健康接口以及状态聚合接口。构建阶段会生成 `public/build.json`，生产 smoke 必须确认其中的 commit 与当前 `GITHUB_SHA` 完全一致，并同时确认自托管标题字体文件存在且体积合理，从而避免“CI 通过但生产仍是旧版本”的假阳性。
 
 
 ## Title font
