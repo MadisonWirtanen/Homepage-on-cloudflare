@@ -293,7 +293,7 @@ public/config.js
 
 ## 图标与外部依赖
 
-核心导航与分组图标（Safari、Gmail、GitHub、Google Scholar、Actix、Apple、YouTube、WeChat、Cloudflare、Uptime Kuma）已放入 `public/icons/`，不再依赖 Simple Icons CDN。少量第三方站点 favicon 仍使用外部来源，但前端加载失败时会自动降级为文字缩写，不影响导航可用性。
+核心导航与分组图标（Safari、Gmail、GitHub、Google Scholar、Actix、Apple、YouTube、WeChat、Cloudflare、Uptime Kuma）已放入 `public/icons/`，不再依赖 Simple Icons CDN。主页 Logo / favicon 也已本地化为 `public/branding/logo.webp`，避免品牌关键元素依赖外部 CDN。少量第三方站点 favicon 仍使用外部来源，但前端加载失败时会自动降级为文字缩写，不影响导航可用性。
 
 ## 前端模块化与 E2E
 
