@@ -87,8 +87,8 @@ test("search thumb is visible, aligned and clickable", async ({ page }) => {
   expect(Math.abs(nextThumb.width - nextButton.width)).toBeLessThan(4);
 });
 
-test("search thumb can be dragged and snaps to Google", async ({ page, isMobile }) => {
-  test.skip(isMobile, "Mouse drag is covered by desktop; mobile still covers tap behavior.");
+test("search thumb can be dragged and snaps to Google", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Mouse drag is covered by desktop; mobile still covers tap behavior.");
 
   const baidu = page.getByRole("button", { name: "百度", exact: true });
   const google = page.getByRole("button", { name: "Google", exact: true });
