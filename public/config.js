@@ -36,13 +36,13 @@ export const STATUS_CARDS = [
     id: "cloudflareLinux",
     name: "本地服务器",
     description: "Cloudflare Tunnel · Linux",
-    icon: "https://cdn.simpleicons.org/cloudflare",
+    icon: "/icons/cloudflare.svg",
   },
   {
     id: "cloudflareColoCrossing",
     name: "ColoCrossing",
     description: "Cloudflare Tunnel · ColoCrossing",
-    icon: "https://cdn.simpleicons.org/cloudflare",
+    icon: "/icons/cloudflare.svg",
   },
   {
     id: "uptimeRobot",
