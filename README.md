@@ -11,7 +11,7 @@
 ```text
 浏览器
   |
-  +-- /, /app.js, /app.css, /config.js
+  +-- /, /app.js, /styles/*.css, /config.js
   |      -> Cloudflare Static Assets
   |      -> 不执行 Worker
   |
@@ -63,7 +63,7 @@
 
 ### 静态请求不调用 Worker
 
-普通访问 `/`、`/app.js`、`/app.css`、`/config.js` 全部直接命中 Static Assets。
+普通访问 `/`、`/app.js`、`/js/*`、`/styles/*`、`/config.js` 全部直接命中 Static Assets。
 
 ### 所有状态只用一个 API
 
@@ -328,6 +328,9 @@ npm run check
 GitHub Actions 另外执行 Gitleaks 与 Playwright Chromium E2E。
 
 ## Attribution
+
+核心品牌图标来自 [Simple Icons](https://github.com/simple-icons/simple-icons)，以本地 SVG 形式随 Static Assets 提供；各品牌商标归其对应权利人所有。
+
 
 项目思路、原始配置方式与部分交互来源于 [gethomepage/homepage](https://github.com/gethomepage/homepage)。本仓库是针对个人场景重新实现的 Cloudflare-native 版本，并非原项目官方发行版。
 
