@@ -56,6 +56,8 @@ jobs:
               && grep -q 'saturate: 82' /tmp/config.js \
               && grep -q 'brightness: 68' /tmp/config.js \
               && grep -q 'opacity: 100' /tmp/config.js \
+              && grep -q 'id="theme-toggle"' /tmp/root.html \
+              && grep -q 'id="glass-tuner-toggle"' /tmp/root.html \
               && jq -e '.ok == true and .runtime == "cloudflare-workers"' /tmp/health.json >/dev/null 2>&1; then
               PAGE_READY=1
               break
@@ -72,10 +74,9 @@ jobs:
           for attempt in {1..12}; do
             STATUS_CODE="$(fetch_code "/api/status?ci=$GITHUB_SHA&attempt=$attempt" /tmp/status.json || true)"
             if [ "$STATUS_CODE" = "200" ] && jq -e '
-              .providers.cloudflareTunnel.configured == true and
-              .providers.cloudflareTunnel.ok == true and
+              .providers.cloudflareLinux.configured == true and
+              .providers.cloudflareColoCrossing.configured == true and
               .providers.uptimeRobot.configured == true and
-              .providers.uptimeRobot.ok == true and
               (.sites | not)
             ' /tmp/status.json >/dev/null 2>&1; then
               STATUS_READY=1
@@ -92,10 +93,15 @@ jobs:
 
           jq '{
             checkedAt,
-            cloudflareTunnel: {
-              ok: .providers.cloudflareTunnel.ok,
-              status: .providers.cloudflareTunnel.status,
-              connections: .providers.cloudflareTunnel.connections
+            cloudflareLinux: {
+              ok: .providers.cloudflareLinux.ok,
+              status: .providers.cloudflareLinux.status,
+              connections: .providers.cloudflareLinux.connections
+            },
+            cloudflareColoCrossing: {
+              ok: .providers.cloudflareColoCrossing.ok,
+              status: .providers.cloudflareColoCrossing.status,
+              connections: .providers.cloudflareColoCrossing.connections
             },
             uptimeRobot: {
               ok: .providers.uptimeRobot.ok,

@@ -32,30 +32,61 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 4000) {
   finally { clearTimeout(timer); }
 }
 
-async function fetchCloudflareTunnelStatus(env, timeoutMs) {
-  if (!configured(env.CLOUDFLARE_API_TOKEN, env.CLOUDFLARE_ACCOUNT_ID, env.CLOUDFLARE_TUNNEL_ID)) {
-    return { configured: false, ok: false, status: "unconfigured" };
+function tunnelResult(tunnel, displayName) {
+  if (!tunnel) {
+    return { configured: true, ok: false, status: "not_found", name: displayName, connections: 0 };
   }
+  const status = tunnel.status || "unknown";
+  return {
+    configured: true,
+    ok: status === "healthy",
+    status,
+    name: displayName,
+    connections: Array.isArray(tunnel.connections) ? tunnel.connections.length : null,
+  };
+}
+
+async function fetchCloudflareTunnelStatuses(env, timeoutMs) {
+  if (!configured(env.CLOUDFLARE_API_TOKEN, env.CLOUDFLARE_ACCOUNT_ID)) {
+    const unconfigured = { configured: false, ok: false, status: "unconfigured", connections: null };
+    return {
+      cloudflareLinux: { ...unconfigured, name: "Linux" },
+      cloudflareColoCrossing: { ...unconfigured, name: "ColoCrossing" },
+    };
+  }
+
   try {
-    const endpoint = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.CLOUDFLARE_ACCOUNT_ID)}/cfd_tunnel/${encodeURIComponent(env.CLOUDFLARE_TUNNEL_ID)}`;
+    const endpoint =
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.CLOUDFLARE_ACCOUNT_ID)}/cfd_tunnel?is_deleted=false&per_page=100`;
     const response = await fetchWithTimeout(endpoint, {
       headers: { Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}`, Accept: "application/json" },
     }, timeoutMs);
     if (!response.ok) throw new Error(`Cloudflare API HTTP ${response.status}`);
+
     const data = await response.json();
-    if (!data?.success || !data?.result) throw new Error("Cloudflare API returned an unsuccessful response");
+    if (!data?.success || !Array.isArray(data?.result)) {
+      throw new Error("Cloudflare API returned an unsuccessful response");
+    }
+
+    const byName = new Map(data.result.map((tunnel) => [String(tunnel.name || "").toLowerCase(), tunnel]));
     return {
-      configured: true, ok: true,
-      status: data.result.status || "unknown",
-      connections: Array.isArray(data.result.connections) ? data.result.connections.length : null,
+      cloudflareLinux: tunnelResult(byName.get("linux"), "Linux"),
+      cloudflareColoCrossing: tunnelResult(byName.get("colocrossing"), "ColoCrossing"),
     };
   } catch (error) {
-    return { configured: true, ok: false, status: "error", error: sanitizedError(error) };
+    const failed = { configured: true, ok: false, status: "error", error: sanitizedError(error), connections: null };
+    return {
+      cloudflareLinux: { ...failed, name: "Linux" },
+      cloudflareColoCrossing: { ...failed, name: "ColoCrossing" },
+    };
   }
 }
 
 async function fetchUptimeRobotStatus(env, timeoutMs) {
-  if (!configured(env.UPTIMEROBOT_API_KEY)) return { configured: false, ok: false, status: "unconfigured" };
+  if (!configured(env.UPTIMEROBOT_API_KEY)) {
+    return { configured: false, ok: false, status: "unconfigured" };
+  }
+
   try {
     const body = new URLSearchParams({ api_key: env.UPTIMEROBOT_API_KEY, format: "json", logs: "0" });
     const response = await fetchWithTimeout("https://api.uptimerobot.com/v2/getMonitors", {
@@ -64,6 +95,7 @@ async function fetchUptimeRobotStatus(env, timeoutMs) {
       body,
     }, timeoutMs);
     if (!response.ok) throw new Error(`UptimeRobot HTTP ${response.status}`);
+
     const data = await response.json();
     if (data?.stat !== "ok") throw new Error("UptimeRobot returned an unsuccessful response");
     const summary = summarizeUptimeRobot(data);
@@ -75,18 +107,23 @@ async function fetchUptimeRobotStatus(env, timeoutMs) {
 
 async function buildStatusPayload(env) {
   const timeoutMs = numberEnv(env.STATUS_TIMEOUT_MS, 4000);
-  const [cloudflareTunnel, uptimeRobot] = await Promise.all([
-    fetchCloudflareTunnelStatus(env, timeoutMs),
+  const [tunnels, uptimeRobot] = await Promise.all([
+    fetchCloudflareTunnelStatuses(env, timeoutMs),
     fetchUptimeRobotStatus(env, timeoutMs),
   ]);
-  return { checkedAt: new Date().toISOString(), providers: { cloudflareTunnel, uptimeRobot } };
+  return {
+    checkedAt: new Date().toISOString(),
+    providers: { ...tunnels, uptimeRobot },
+  };
 }
 
 async function statusHandler(request, env) {
   if (request.method !== "GET" && request.method !== "HEAD") {
     return jsonResponse({ error: "method not allowed" }, { status: 405, headers: { Allow: "GET, HEAD" } });
   }
-  if (isCrossSiteRequest(request)) return jsonResponse({ error: "cross-site request blocked" }, { status: 403 });
+  if (isCrossSiteRequest(request)) {
+    return jsonResponse({ error: "cross-site request blocked" }, { status: 403 });
+  }
 
   const memoryTtlMs = numberEnv(env.WORKER_MEMORY_TTL_SECONDS, 60) * 1000;
   if (statusMemoryCache.payload && statusMemoryCache.expiresAt > Date.now()) {
@@ -109,7 +146,9 @@ export default {
     if (url.pathname === "/api/health") {
       return jsonResponse({ ok: true, runtime: "cloudflare-workers" }, { headers: { "Cache-Control": "no-store" } });
     }
-    if (url.pathname.startsWith("/api/")) return jsonResponse({ error: "not found" }, { status: 404 });
+    if (url.pathname.startsWith("/api/")) {
+      return jsonResponse({ error: "not found" }, { status: 404 });
+    }
     return env.ASSETS.fetch(request);
   },
 };

@@ -1,9 +1,10 @@
 import { APP_CONFIG, GROUPS, STATUS_CARDS } from "./config.js";
 
-const STATUS_CACHE_KEY = "homepage-cf-status-v2";
+const STATUS_CACHE_KEY = "homepage-cf-status-v3";
 const WEATHER_CACHE_KEY = "homepage-cf-weather-v1";
 const GLASS_TRANSPARENCY_KEY = "homepage-glass-transparency-v1";
 const DEFAULT_GLASS_TRANSPARENCY = 64;
+const THEME_KEY = "homepage-theme-v1";
 
 function safeText(value, fallback = "--") {
   if (value === null || value === undefined || value === "") return fallback;
@@ -14,9 +15,7 @@ function providerTone(provider) {
   if (!provider?.configured) return "idle";
   if (!provider?.ok) return "bad";
   if (["healthy", "up", "online"].includes(provider.status)) return "good";
-  if (["degraded", "partial", "warning"].includes(provider.status)) return "warn";
-  if (["down", "offline", "error"].includes(provider.status)) return "bad";
-  return "good";
+  return "bad";
 }
 
 function cardIcon(item) {
@@ -166,6 +165,11 @@ function renderStatusCards() {
     card.className = "card status-card";
     card.dataset.providerId = item.id;
 
+    const toggle = document.createElement("button");
+    toggle.className = "status-summary";
+    toggle.type = "button";
+    toggle.setAttribute("aria-expanded", "false");
+
     const main = document.createElement("div");
     main.className = "card-main";
     main.appendChild(cardIcon(item));
@@ -182,20 +186,41 @@ function renderStatusCards() {
 
     const dot = document.createElement("span");
     dot.className = "status-dot";
+    dot.setAttribute("aria-label", "状态未知");
+
+    const chevron = document.createElement("span");
+    chevron.className = "status-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+
     titleRow.append(title, dot);
+    copy.appendChild(titleRow);
+    main.appendChild(copy);
+    toggle.append(main, chevron);
+
+    const details = document.createElement("div");
+    details.className = "status-details";
+    details.setAttribute("aria-hidden", "true");
+
+    const detailsInner = document.createElement("div");
+    detailsInner.className = "status-details-inner";
 
     const description = document.createElement("p");
-    description.className = "card-description";
+    description.className = "status-description";
     description.textContent = item.description;
-
-    copy.append(titleRow, description);
-    main.appendChild(copy);
-    card.appendChild(main);
 
     const metrics = document.createElement("div");
     metrics.className = "status-metrics";
-    card.appendChild(metrics);
 
+    detailsInner.append(description, metrics);
+    details.appendChild(detailsInner);
+
+    toggle.addEventListener("click", () => {
+      const expanded = card.classList.toggle("is-expanded");
+      toggle.setAttribute("aria-expanded", String(expanded));
+      details.setAttribute("aria-hidden", String(!expanded));
+    });
+
+    card.append(toggle, details);
     grid.appendChild(card);
   }
 }
@@ -255,25 +280,30 @@ function updateProviderCard(id, provider) {
   if (!card) return;
 
   const dot = card.querySelector(".status-dot");
-  dot.className = `status-dot ${providerTone(provider)}`;
+  const tone = providerTone(provider);
+  dot.className = `status-dot ${tone}`;
+  dot.setAttribute(
+    "aria-label",
+    tone === "good" ? "运行正常" : tone === "bad" ? "运行异常" : "未配置"
+  );
 
   if (!provider?.configured) {
     setMetrics(card, [
       { label: "状态", value: "未配置" },
-      { label: "说明", value: "请在 Cloudflare 设置变量" },
+      { label: "说明", value: "请在 Cloudflare 设置凭据" },
     ]);
     return;
   }
 
   if (!provider.ok) {
     setMetrics(card, [
-      { label: "状态", value: "获取失败" },
-      { label: "信息", value: provider.error || "稍后重试" },
+      { label: "状态", value: provider.status === "not_found" ? "未找到" : "异常" },
+      { label: "信息", value: provider.error || "连接器不可用" },
     ]);
     return;
   }
 
-  if (id === "cloudflareTunnel") {
+  if (id === "cloudflareLinux" || id === "cloudflareColoCrossing") {
     const statusMap = { healthy: "Healthy", degraded: "Degraded", down: "Down", inactive: "Inactive" };
     setMetrics(card, [
       { label: "Tunnel", value: statusMap[provider.status] || provider.status },
@@ -283,12 +313,15 @@ function updateProviderCard(id, provider) {
     setMetrics(card, [
       { label: "正常", value: provider.up },
       { label: "异常", value: provider.down },
+      { label: "暂停", value: provider.paused },
+      { label: "总计", value: provider.total },
     ]);
   }
 }
 
 function applyStatus(payload) {
-  updateProviderCard("cloudflareTunnel", payload?.providers?.cloudflareTunnel);
+  updateProviderCard("cloudflareLinux", payload?.providers?.cloudflareLinux);
+  updateProviderCard("cloudflareColoCrossing", payload?.providers?.cloudflareColoCrossing);
   updateProviderCard("uptimeRobot", payload?.providers?.uptimeRobot);
 
   const updated = document.getElementById("status-updated");
@@ -532,7 +565,7 @@ function setupLiquidGlass() {
     { selector: ".search-shell", mode: "lg-pill" },
     { selector: ".widget-block", mode: "lg-control" },
     { selector: ".card", mode: "lg-card" },
-    { selector: ".glass-tuner-toggle", mode: "lg-control" },
+    { selector: ".side-control-button", mode: "lg-control" },
   ];
 
   for (const group of groups) {
@@ -599,7 +632,7 @@ function applyGlassTransparency(value, { persist = false } = {}) {
 }
 
 function setupGlassTuner() {
-  const tuner = document.getElementById("glass-tuner");
+  const tuner = document.getElementById("glass-control");
   const toggle = document.getElementById("glass-tuner-toggle");
   const panel = document.getElementById("glass-tuner-panel");
   const slider = document.getElementById("glass-transparency");
@@ -621,6 +654,7 @@ function setupGlassTuner() {
     const isOpen = !panel.hidden;
     panel.hidden = isOpen;
     toggle.setAttribute("aria-expanded", String(!isOpen));
+    toggle.classList.toggle("is-open", !isOpen);
   });
 
   slider.addEventListener("input", () => {
@@ -635,6 +669,7 @@ function setupGlassTuner() {
     if (panel.hidden || tuner.contains(event.target)) return;
     panel.hidden = true;
     toggle.setAttribute("aria-expanded", "false");
+    toggle.classList.remove("is-open");
   });
 
   document.addEventListener("keydown", (event) => {
@@ -642,6 +677,42 @@ function setupGlassTuner() {
     panel.hidden = true;
     toggle.setAttribute("aria-expanded", "false");
     toggle.focus();
+  });
+}
+
+
+function applyThemeMode(theme, { persist = false } = {}) {
+  const nextTheme = theme === "light" ? "light" : "dark";
+  const root = document.documentElement;
+  root.dataset.theme = nextTheme;
+  root.style.colorScheme = nextTheme;
+
+  const toggle = document.getElementById("theme-toggle");
+  const label = document.getElementById("theme-toggle-label");
+  const isDark = nextTheme === "dark";
+
+  if (toggle) toggle.setAttribute("aria-label", isDark ? "切换浅色主题" : "切换深色主题");
+  if (label) label.textContent = isDark ? "浅色主题" : "深色主题";
+
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_KEY, nextTheme);
+    } catch {
+      // Theme still applies for the current page.
+    }
+  }
+}
+
+function setupThemeToggle() {
+  let theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+  applyThemeMode(theme);
+
+  const toggle = document.getElementById("theme-toggle");
+  if (!toggle) return;
+
+  toggle.addEventListener("click", () => {
+    theme = theme === "dark" ? "light" : "dark";
+    applyThemeMode(theme, { persist: true });
   });
 }
 
@@ -653,8 +724,6 @@ function applyTheme() {
 
   const bg = document.querySelector(".background");
   bg.style.backgroundImage = `url("${APP_CONFIG.background.image}")`;
-  bg.style.filter =
-    `saturate(${APP_CONFIG.background.saturate}%) brightness(${APP_CONFIG.background.brightness}%)`;
   bg.style.opacity = String(APP_CONFIG.background.opacity / 100);
 }
 
@@ -665,6 +734,7 @@ function init() {
   renderGroups();
   setupSearch();
   setupRefractionMaps();
+  setupThemeToggle();
   setupGlassTuner();
   setupLiquidGlass();
   startClock();

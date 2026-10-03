@@ -4,7 +4,6 @@
 # Cloudflare Tunnel status
 CLOUDFLARE_API_TOKEN=replace_with_tunnel_read_only_token
 CLOUDFLARE_ACCOUNT_ID=replace_with_account_id
-CLOUDFLARE_TUNNEL_ID=replace_with_tunnel_id
 
 # UptimeRobot read-only key
 UPTIMEROBOT_API_KEY=replace_with_read_only_api_key

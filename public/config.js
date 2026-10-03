@@ -27,9 +27,15 @@ export const APP_CONFIG = {
 
 export const STATUS_CARDS = [
   {
-    id: "cloudflareTunnel",
-    name: "Cloudflare 隧道",
-    description: "Tunnels 状态监控",
+    id: "cloudflareLinux",
+    name: "本地服务器",
+    description: "Cloudflare Tunnel · Linux",
+    icon: "https://cdn.simpleicons.org/cloudflare",
+  },
+  {
+    id: "cloudflareColoCrossing",
+    name: "ColoCrossing",
+    description: "Cloudflare Tunnel · ColoCrossing",
     icon: "https://cdn.simpleicons.org/cloudflare",
   },
   {

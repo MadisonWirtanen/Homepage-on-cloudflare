@@ -2,7 +2,7 @@
 
 一个为 Cloudflare Workers + Static Assets 重构的个人主页/服务导航站。
 
-这个仓库根据原先的 Homepage 配置重新实现，目标不是把完整的 Next.js/Docker 版 Homepage 硬塞进 Workers，而是保留你实际使用的导航、天气、搜索、Cloudflare Tunnel、UptimeRobot，同时让主页本身完全脱离 VPS。
+这个仓库根据原先的 Homepage 配置重新实现，目标不是把完整的 Next.js/Docker 版 Homepage 硬塞进 Workers，而是保留你实际使用的导航、天气、搜索、Cloudflare Tunnel（Linux / ColoCrossing）、UptimeRobot，同时让主页本身完全脱离 VPS。
 
 即使云服务器、本地服务器或 Cloudflare Tunnel 宕机，主页仍然由 Cloudflare 提供，并显示故障状态。
 
@@ -44,12 +44,17 @@
 
 ## 已迁移功能
 
+- 支持深色 / 浅色主题切换，并同步调整背景图片亮度与遮罩。
+- 支持前端实时调节“液态玻璃”透明度，设置保存在浏览器本地。
+- 百度 / Bing / Google 使用液态玻璃滑动式分段切换。
+- Status 默认紧凑显示状态灯，点击后展开详细信息。
+
 - 标题、Logo、favicon、背景图和原有分组。
 - Public / Contact / 学术资源 / 网页工具 / 设计素材 / 影音娱乐。
 - 杭州 Open-Meteo 天气。
 - 日期与实时本地时间。
 - 百度 / Bing / Google 搜索。
-- Cloudflare Tunnel：Tunnel 状态。
+- Cloudflare Tunnel：同时监控 `Linux` 与 `ColoCrossing` 两个连接器。
 - UptimeRobot：正常/异常监控数量。
 - 手动刷新状态。
 - 状态失败不会影响静态主页加载。
@@ -68,7 +73,7 @@
 /api/status
 ```
 
-Worker 内部只聚合 Cloudflare Tunnel 与 UptimeRobot 状态后一次返回。
+Worker 每次状态刷新只调用一次 Cloudflare Tunnel 列表 API，同时识别 `Linux` 与 `ColoCrossing`，再并行聚合 UptimeRobot。
 
 ### 浏览器缓存 10 分钟
 
@@ -126,7 +131,7 @@ npx wrangler deploy
 
 仓库中的 `wrangler.jsonc` 已包含 Static Assets 与 API 路由配置。
 
-第一次不设置第三方变量也可以部署成功，只是两张状态卡会显示“未配置”。
+第一次不设置第三方变量也可以部署成功，只是 Status 项目会显示“未配置”。
 
 ### 2. 添加 Cloudflare Tunnel 变量
 
@@ -139,7 +144,6 @@ npx wrangler deploy
 | 名称 | 类型 | 内容 |
 | --- | --- | --- |
 | `CLOUDFLARE_ACCOUNT_ID` | Text | Cloudflare Account ID |
-| `CLOUDFLARE_TUNNEL_ID` | Text | 要监控的 Tunnel ID |
 | `CLOUDFLARE_API_TOKEN` | **Secret** | 仅具 Tunnel Read 权限的 API Token |
 
 建议专门新建最小权限 Read-only Token。
@@ -159,7 +163,7 @@ npx wrangler deploy
 - 页面和背景是否正常；
 - 导航是否正常；
 - 天气是否正常；
-- 两张 Status 卡片是否返回数据；
+- Status 中 Linux、ColoCrossing 与 UptimeRobot 是否返回数据；
 
 当前账户的 `*.workers.dev` 入口在实际部署验证中持续返回 Cloudflare 平台 1101，因此本项目生产环境不依赖 `workers.dev`。正式环境使用 **Settings -> Domains & Routes** 下的自定义域名 / Worker Route。
 
