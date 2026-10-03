@@ -10,6 +10,23 @@
     <link rel="stylesheet" href="/app.css" />
   </head>
   <body>
+    <svg class="liquid-glass-defs" aria-hidden="true" focusable="false">
+      <defs>
+        <filter id="lg-refraction-pill" x="-12%" y="-45%" width="124%" height="190%" color-interpolation-filters="sRGB">
+          <feImage id="lg-map-pill" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
+          <feDisplacementMap in="SourceGraphic" in2="map" scale="-32" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id="lg-refraction-card" x="-16%" y="-38%" width="132%" height="176%" color-interpolation-filters="sRGB">
+          <feImage id="lg-map-card" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
+          <feDisplacementMap in="SourceGraphic" in2="map" scale="-26" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <filter id="lg-refraction-control" x="-18%" y="-40%" width="136%" height="180%" color-interpolation-filters="sRGB">
+          <feImage id="lg-map-control" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
+          <feDisplacementMap in="SourceGraphic" in2="map" scale="-22" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </defs>
+    </svg>
+
     <div class="background" aria-hidden="true"></div>
 
     <main class="page-shell">
@@ -49,6 +66,26 @@
       <div id="primary-root" class="primary-root"></div>
       <div id="groups-root"></div>
     </main>
+
+    <div id="glass-tuner" class="glass-tuner">
+      <button id="glass-tuner-toggle" class="glass-tuner-toggle" type="button" aria-expanded="false" aria-controls="glass-tuner-panel">
+        <span class="glass-tuner-dot" aria-hidden="true"></span>
+        <span>玻璃</span>
+        <strong id="glass-tuner-value">64%</strong>
+      </button>
+      <div id="glass-tuner-panel" class="glass-tuner-panel" hidden>
+        <div class="glass-tuner-heading">
+          <span>玻璃透明度</span>
+          <strong id="glass-tuner-panel-value">64%</strong>
+        </div>
+        <input id="glass-transparency" type="range" min="35" max="82" step="1" value="64" aria-label="玻璃透明度" />
+        <div class="glass-tuner-scale">
+          <span>更实</span>
+          <span>更透</span>
+        </div>
+        <button id="glass-tuner-reset" class="glass-tuner-reset" type="button">恢复默认</button>
+      </div>
+    </div>
 
     <noscript>此页面需要 JavaScript 才能显示导航卡片与状态信息。</noscript>
     <script type="module" src="/app.js"></script>

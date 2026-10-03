@@ -2,6 +2,8 @@ import { APP_CONFIG, GROUPS, STATUS_CARDS } from "./config.js";
 
 const STATUS_CACHE_KEY = "homepage-cf-status-v2";
 const WEATHER_CACHE_KEY = "homepage-cf-weather-v1";
+const GLASS_TRANSPARENCY_KEY = "homepage-glass-transparency-v1";
+const DEFAULT_GLASS_TRANSPARENCY = 64;
 
 function safeText(value, fallback = "--") {
   if (value === null || value === undefined || value === "") return fallback;
@@ -454,29 +456,192 @@ function setupSearch() {
 }
 
 
+function roundedRectSdf(x, y, width, height, radius) {
+  const cx = width / 2;
+  const cy = height / 2;
+  const qx = Math.abs(x - cx) - (cx - radius);
+  const qy = Math.abs(y - cy) - (cy - radius);
+  const outside = Math.hypot(Math.max(qx, 0), Math.max(qy, 0));
+  const inside = Math.min(Math.max(qx, qy), 0);
+  return outside + inside - radius;
+}
+
+function smoothStep(edge0, edge1, value) {
+  const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+function createDisplacementMap(width, height, radius, rim) {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { alpha: true });
+  if (!context) return "";
+
+  const image = context.createImageData(width, height);
+  const data = image.data;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const sdf = roundedRectSdf(x, y, width, height, radius);
+      const gx =
+        roundedRectSdf(x + 1, y, width, height, radius) -
+        roundedRectSdf(x - 1, y, width, height, radius);
+      const gy =
+        roundedRectSdf(x, y + 1, width, height, radius) -
+        roundedRectSdf(x, y - 1, width, height, radius);
+
+      const length = Math.hypot(gx, gy) || 1;
+      const nx = gx / length;
+      const ny = gy / length;
+      const edgeDistance = Math.max(-sdf, 0);
+      const factor = 1 - smoothStep(0, rim, edgeDistance);
+      const offset = (y * width + x) * 4;
+
+      data[offset] = Math.max(0, Math.min(255, 128 + nx * factor * 127));
+      data[offset + 1] = Math.max(0, Math.min(255, 128 + ny * factor * 127));
+      data[offset + 2] = 128;
+      data[offset + 3] = 255;
+    }
+  }
+
+  context.putImageData(image, 0, 0);
+  return canvas.toDataURL("image/png");
+}
+
+function setupRefractionMaps() {
+  const maps = [
+    { id: "lg-map-pill", width: 760, height: 52, radius: 18, rim: 20 },
+    { id: "lg-map-card", width: 250, height: 64, radius: 14, rim: 18 },
+    { id: "lg-map-control", width: 130, height: 52, radius: 14, rim: 18 },
+  ];
+
+  for (const map of maps) {
+    const image = document.getElementById(map.id);
+    if (!image) continue;
+    const dataUrl = createDisplacementMap(map.width, map.height, map.radius, map.rim);
+    if (!dataUrl) continue;
+    image.setAttribute("href", dataUrl);
+    image.setAttributeNS("http://www.w3.org/1999/xlink", "href", dataUrl);
+  }
+}
+
 function setupLiquidGlass() {
   const finePointer = window.matchMedia("(pointer: fine)").matches;
-  const elements = document.querySelectorAll(
-    ".search-shell, .widget-block, .card, .ghost-button"
-  );
+  const groups = [
+    { selector: ".search-shell", mode: "lg-pill" },
+    { selector: ".widget-block", mode: "lg-control" },
+    { selector: ".card", mode: "lg-card" },
+    { selector: ".glass-tuner-toggle", mode: "lg-control" },
+  ];
 
-  elements.forEach((element) => {
-    element.classList.add("liquid-glass");
+  for (const group of groups) {
+    document.querySelectorAll(group.selector).forEach((element) => {
+      element.classList.add("liquid-glass", group.mode);
+      element.style.setProperty("--mx", "50%");
+      element.style.setProperty("--my", "18%");
+      element.style.setProperty("--lg-light-angle", "315deg");
 
-    if (!finePointer) return;
+      if (!finePointer) return;
 
-    element.addEventListener("pointermove", (event) => {
-      const rect = element.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / rect.width) * 100;
-      const y = ((event.clientY - rect.top) / rect.height) * 100;
-      element.style.setProperty("--glass-x", `${x.toFixed(1)}%`);
-      element.style.setProperty("--glass-y", `${y.toFixed(1)}%`);
+      element.addEventListener("pointermove", (event) => {
+        const rect = element.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 100;
+        const y = ((event.clientY - rect.top) / rect.height) * 100;
+        const angle = Math.atan2(y - 50, x - 50) * (180 / Math.PI) + 90;
+
+        element.style.setProperty("--mx", `${x.toFixed(1)}%`);
+        element.style.setProperty("--my", `${y.toFixed(1)}%`);
+        element.style.setProperty("--lg-light-angle", `${angle.toFixed(1)}deg`);
+      });
+
+      element.addEventListener("pointerleave", () => {
+        element.style.setProperty("--mx", "50%");
+        element.style.setProperty("--my", "18%");
+        element.style.setProperty("--lg-light-angle", "315deg");
+      });
     });
+  }
+}
 
-    element.addEventListener("pointerleave", () => {
-      element.style.setProperty("--glass-x", "50%");
-      element.style.setProperty("--glass-y", "18%");
-    });
+function clampGlassTransparency(value) {
+  return Math.max(35, Math.min(82, Number(value) || DEFAULT_GLASS_TRANSPARENCY));
+}
+
+function applyGlassTransparency(value, { persist = false } = {}) {
+  const transparency = clampGlassTransparency(value);
+  const opacity = 1 - transparency / 100;
+
+  const panelAlpha = 0.20 + opacity * 0.46;
+  const darkAlpha = 0.045 + opacity * 0.30;
+  const tintAlpha = 0.025 + opacity * 0.16;
+
+  const root = document.documentElement;
+  root.style.setProperty("--panel-alpha", panelAlpha.toFixed(3));
+  root.style.setProperty("--glass-dark-alpha", darkAlpha.toFixed(3));
+  root.style.setProperty("--glass-tint-alpha", tintAlpha.toFixed(3));
+
+  const slider = document.getElementById("glass-transparency");
+  const toggleValue = document.getElementById("glass-tuner-value");
+  const panelValue = document.getElementById("glass-tuner-panel-value");
+
+  if (slider) slider.value = String(transparency);
+  if (toggleValue) toggleValue.textContent = `${transparency}%`;
+  if (panelValue) panelValue.textContent = `${transparency}%`;
+
+  if (persist) {
+    try {
+      localStorage.setItem(GLASS_TRANSPARENCY_KEY, String(transparency));
+    } catch {
+      // The visual control still works when storage is unavailable.
+    }
+  }
+}
+
+function setupGlassTuner() {
+  const tuner = document.getElementById("glass-tuner");
+  const toggle = document.getElementById("glass-tuner-toggle");
+  const panel = document.getElementById("glass-tuner-panel");
+  const slider = document.getElementById("glass-transparency");
+  const reset = document.getElementById("glass-tuner-reset");
+
+  if (!tuner || !toggle || !panel || !slider || !reset) return;
+
+  let initial = DEFAULT_GLASS_TRANSPARENCY;
+  try {
+    const saved = Number(localStorage.getItem(GLASS_TRANSPARENCY_KEY));
+    if (Number.isFinite(saved)) initial = clampGlassTransparency(saved);
+  } catch {
+    // Use the default.
+  }
+
+  applyGlassTransparency(initial);
+
+  toggle.addEventListener("click", () => {
+    const isOpen = !panel.hidden;
+    panel.hidden = isOpen;
+    toggle.setAttribute("aria-expanded", String(!isOpen));
+  });
+
+  slider.addEventListener("input", () => {
+    applyGlassTransparency(slider.value, { persist: true });
+  });
+
+  reset.addEventListener("click", () => {
+    applyGlassTransparency(DEFAULT_GLASS_TRANSPARENCY, { persist: true });
+  });
+
+  document.addEventListener("pointerdown", (event) => {
+    if (panel.hidden || tuner.contains(event.target)) return;
+    panel.hidden = true;
+    toggle.setAttribute("aria-expanded", "false");
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || panel.hidden) return;
+    panel.hidden = true;
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.focus();
   });
 }
 
@@ -499,6 +664,8 @@ function init() {
   renderStatusCards();
   renderGroups();
   setupSearch();
+  setupRefractionMaps();
+  setupGlassTuner();
   setupLiquidGlass();
   startClock();
   updateWeather();
