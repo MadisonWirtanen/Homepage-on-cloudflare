@@ -292,9 +292,8 @@ button, a {
 
 .primary-split {
   display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-    gap: 16px;
-    align-items: stretch;
+  gap: 16px;
+  align-items: stretch;
 }
 
 .section {
@@ -401,22 +400,10 @@ button, a {
     gap: 9px;
 }
 
-.public-section .primary-grid {
+.primary-grid {
   display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 9px;
-}
-
-.status-section .primary-grid {
-  display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 9px;
-}
-
-.contact-section .primary-grid {
-  display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 9px;
+  grid-template-columns: repeat(var(--columns, 3), minmax(0, 1fr));
+  gap: 9px;
 }
 
 .card {
@@ -568,17 +555,6 @@ button, a {
   min-height: 58px;
 }
 
-.glass-tuner {
-  position: fixed;
-    right: 20px;
-    bottom: 20px;
-    z-index: 60;
-    display: grid;
-    justify-items: end;
-    gap: 8px;
-    font-family: var(--font-ui);
-}
-
 .glass-tuner-toggle {
   min-height: 38px;
     display: inline-flex;
@@ -588,16 +564,6 @@ button, a {
     border-radius: 13px;
     color: rgba(246, 251, 255, .94);
     cursor: pointer;
-}
-
-.glass-tuner-dot {
-  width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: #2a6e99;
-    box-shadow:
-      0 0 0 3px rgba(var(--prussian-rgb), .28),
-      0 0 14px rgba(56, 137, 184, .45);
 }
 
 .glass-tuner-toggle span {
@@ -681,21 +647,6 @@ button, a {
     --page-max: 920px;
   }
 
-  .public-section .primary-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .primary-split {
-    grid-template-columns: 1fr;
-  }
-
-  .status-section .primary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .contact-section .primary-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 
   .card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -739,10 +690,7 @@ button, a {
     min-width: 0;
   }
 
-  .public-section .primary-grid,
-    .status-section .primary-grid,
-    .contact-section .primary-grid,
-    .card-grid {
+  .card-grid {
     grid-template-columns: 1fr;
   }
 
