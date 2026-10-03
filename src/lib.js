@@ -15,12 +15,6 @@ export function summarizeUptimeRobot(data) {
   return { up, down, paused, unknown, total: monitors.length };
 }
 
-export function tailscaleOnline(lastSeen, thresholdMs = 5 * 60 * 1000) {
-  const time = new Date(lastSeen).getTime();
-  if (!Number.isFinite(time)) return false;
-  return Date.now() - time <= thresholdMs;
-}
-
 export function isCrossSiteRequest(request) {
   const url = new URL(request.url);
   const origin = request.headers.get("Origin");

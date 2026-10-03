@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { isCrossSiteRequest, summarizeUptimeRobot, tailscaleOnline } from "../src/lib.js";
+import { isCrossSiteRequest, summarizeUptimeRobot } from "../src/lib.js";
 
 test("summarizeUptimeRobot counts monitor states", () => {
   const result = summarizeUptimeRobot({
@@ -15,12 +15,6 @@ test("summarizeUptimeRobot counts monitor states", () => {
     ],
   });
   assert.deepEqual(result, { up: 2, down: 2, paused: 1, unknown: 1, total: 6 });
-});
-
-test("tailscaleOnline treats recent lastSeen as online", () => {
-  assert.equal(tailscaleOnline(new Date(Date.now() - 30_000).toISOString(), 60_000), true);
-  assert.equal(tailscaleOnline(new Date(Date.now() - 120_000).toISOString(), 60_000), false);
-  assert.equal(tailscaleOnline("invalid"), false);
 });
 
 test("isCrossSiteRequest blocks foreign Origin and Sec-Fetch-Site", () => {

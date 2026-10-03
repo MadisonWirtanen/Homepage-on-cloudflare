@@ -2,7 +2,7 @@
 
 一个为 Cloudflare Workers + Static Assets 重构的个人主页/服务导航站。
 
-这个仓库根据原先的 Homepage 配置重新实现，目标不是把完整的 Next.js/Docker 版 Homepage 硬塞进 Workers，而是保留你实际使用的导航、天气、搜索、Tailscale、Cloudflare Tunnel、UptimeRobot 和网站可用性检测，同时让主页本身完全脱离 VPS。
+这个仓库根据原先的 Homepage 配置重新实现，目标不是把完整的 Next.js/Docker 版 Homepage 硬塞进 Workers，而是保留你实际使用的导航、天气、搜索、Cloudflare Tunnel、UptimeRobot 和网站可用性检测，同时让主页本身完全脱离 VPS。
 
 即使云服务器、本地服务器或 Cloudflare Tunnel 宕机，主页仍然由 Cloudflare 提供，并显示故障状态。
 
@@ -20,7 +20,6 @@
   |
   +-- /api/status
          -> 一个 Cloudflare Worker 请求
-              |-- Tailscale API
               |-- Cloudflare Tunnel API
               |-- UptimeRobot API
               `-- 自有网站 HTTP HEAD 检测
@@ -51,7 +50,6 @@
 - 杭州 Open-Meteo 天气。
 - 日期与实时本地时间。
 - 百度 / Bing / Google 搜索。
-- Tailscale 设备状态：最近在线时间、设备密钥到期。
 - Cloudflare Tunnel：Tunnel 状态。
 - UptimeRobot：正常/异常监控数量。
 - Alist、文件快递柜、News、DuckAI、临时聊天室、博客的 HTTP 可用性和延迟。
@@ -100,10 +98,10 @@ https://developers.cloudflare.com/workers/configuration/secrets/
 仓库另外包含：
 
 - `.gitignore`：排除 `.dev.vars`、`.env` 等本地密钥文件。
-- `scripts-security-check.mjs`：检查常见 Tailscale/UptimeRobot/私钥泄漏模式。
+- `scripts-security-check.mjs`：检查常见 UptimeRobot/私钥泄漏模式。
 - GitHub Actions CI：每次提交执行语法检查、单元测试和密钥扫描。
 
-> 旧配置文件中曾以明文保存 API 凭据。迁移完成后建议把旧的 Tailscale、Cloudflare 和 UptimeRobot 凭据全部轮换，再使用新凭据部署。
+> 旧配置文件中曾以明文保存 API 凭据。迁移完成后建议把旧的 Cloudflare 和 UptimeRobot 凭据全部轮换，再使用新凭据部署。
 
 ## Cloudflare 部署：推荐方式
 
@@ -130,7 +128,7 @@ npx wrangler deploy
 
 仓库中的 `wrangler.jsonc` 已包含 Static Assets 与 API 路由配置。
 
-第一次不设置第三方变量也可以部署成功，只是三张状态卡会显示“未配置”。
+第一次不设置第三方变量也可以部署成功，只是两张状态卡会显示“未配置”。
 
 ### 2. 添加 Cloudflare Tunnel 变量
 
@@ -148,27 +146,7 @@ npx wrangler deploy
 
 建议专门新建最小权限 Read-only Token。
 
-### 3. 添加 Tailscale
-
-长期运行推荐 OAuth Client：
-
-| 名称 | 类型 |
-| --- | --- |
-| `TAILSCALE_DEVICE_ID` | Text |
-| `TAILSCALE_OAUTH_CLIENT_ID` | Text |
-| `TAILSCALE_OAUTH_CLIENT_SECRET` | **Secret** |
-
-OAuth Client 只授予设备读取权限：`devices:core:read`。
-
-如果暂时继续使用普通 API key，也支持：
-
-| 名称 | 类型 |
-| --- | --- |
-| `TAILSCALE_API_KEY` | **Secret** |
-
-若两种方式同时配置，Worker 优先使用 `TAILSCALE_API_KEY`；长期部署仍建议 OAuth。
-
-### 4. 添加 UptimeRobot
+### 3. 添加 UptimeRobot
 
 | 名称 | 类型 |
 | --- | --- |
@@ -176,14 +154,14 @@ OAuth Client 只授予设备读取权限：`devices:core:read`。
 
 建议使用 Read-only key。
 
-### 5. 重新部署并测试
+### 4. 重新部署并测试
 
 保存 Variables and Secrets 后重新部署，并通过自定义域名测试：
 
 - 页面和背景是否正常；
 - 导航是否正常；
 - 天气是否正常；
-- 三张 Status 卡片是否返回数据；
+- 两张 Status 卡片是否返回数据；
 - 自有服务卡片是否显示延迟/离线。
 
 当前账户的 `*.workers.dev` 入口在实际部署验证中持续返回 Cloudflare 平台 1101，因此本项目生产环境不依赖 `workers.dev`。正式环境使用 **Settings -> Domains & Routes** 下的自定义域名 / Worker Route。
@@ -222,7 +200,6 @@ npm run deploy
 
 ```bash
 npx wrangler secret put CLOUDFLARE_API_TOKEN
-npx wrangler secret put TAILSCALE_OAUTH_CLIENT_SECRET
 npx wrangler secret put UPTIMEROBOT_API_KEY
 ```
 
@@ -273,7 +250,7 @@ healthUrl: "https://service.example.com/health"
 "DIRECT_SITE_CHECKS": "false"
 ```
 
-Tailscale、Cloudflare Tunnel、UptimeRobot 三张主状态卡不会受影响。
+Cloudflare Tunnel、UptimeRobot 两张主状态卡不会受影响。
 
 ## 项目结构
 

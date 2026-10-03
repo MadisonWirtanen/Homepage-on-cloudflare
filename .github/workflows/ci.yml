@@ -67,17 +67,9 @@ jobs:
             exit 1
           fi
 
-          if ! jq -e '.providers.tailscale.configured == true and .providers.tailscale.ok == true' /tmp/status.json >/dev/null; then
-            echo "::warning::Tailscale status API is configured but the current credential/device request is not succeeding."
-          fi
 
           jq '{
             checkedAt,
-            tailscale: {
-              ok: .providers.tailscale.ok,
-              status: .providers.tailscale.status,
-              error: .providers.tailscale.error
-            },
             cloudflareTunnel: {
               ok: .providers.cloudflareTunnel.ok,
               status: .providers.cloudflareTunnel.status,

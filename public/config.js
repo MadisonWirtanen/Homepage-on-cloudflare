@@ -27,12 +27,6 @@ export const APP_CONFIG = {
 
 export const STATUS_CARDS = [
   {
-    id: "tailscale",
-    name: "服务器状态",
-    description: "本地服务器监控",
-    icon: "https://cdn.simpleicons.org/tailscale",
-  },
-  {
     id: "cloudflareTunnel",
     name: "Cloudflare 隧道",
     description: "Tunnels 状态监控",
@@ -42,7 +36,7 @@ export const STATUS_CARDS = [
     id: "uptimeRobot",
     name: "云服务监控",
     description: "云服务可用性监控",
-    icon: "https://cdn.simpleicons.org/uptimerobot",
+    icon: "https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/uptime-kuma.svg",
   },
 ];
 

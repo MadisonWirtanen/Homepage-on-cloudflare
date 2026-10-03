@@ -1,8 +1,7 @@
 import { HEALTH_CHECKS } from "../public/config.js";
-import { isCrossSiteRequest, summarizeUptimeRobot, tailscaleOnline } from "./lib.js";
+import { isCrossSiteRequest, summarizeUptimeRobot } from "./lib.js";
 
 let statusMemoryCache = { expiresAt: 0, payload: null };
-let tailscaleTokenCache = { expiresAt: 0, token: null };
 
 function numberEnv(value, fallback) {
   const parsed = Number(value);
@@ -32,58 +31,6 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 4000) {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch(url, { ...options, signal: controller.signal }); }
   finally { clearTimeout(timer); }
-}
-
-async function getTailscaleAuthorization(env, timeoutMs) {
-  if (configured(env.TAILSCALE_API_KEY)) return `Bearer ${env.TAILSCALE_API_KEY}`;
-  if (!configured(env.TAILSCALE_OAUTH_CLIENT_ID, env.TAILSCALE_OAUTH_CLIENT_SECRET)) return null;
-  if (tailscaleTokenCache.token && tailscaleTokenCache.expiresAt > Date.now() + 60_000) {
-    return `Bearer ${tailscaleTokenCache.token}`;
-  }
-
-  const body = new URLSearchParams({
-    grant_type: "client_credentials",
-    client_id: env.TAILSCALE_OAUTH_CLIENT_ID,
-    client_secret: env.TAILSCALE_OAUTH_CLIENT_SECRET,
-    scope: "devices:core:read",
-  });
-  const response = await fetchWithTimeout("https://api.tailscale.com/api/v2/oauth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-  }, timeoutMs);
-  if (!response.ok) throw new Error(`Tailscale OAuth HTTP ${response.status}`);
-  const data = await response.json();
-  if (!data?.access_token) throw new Error("Tailscale OAuth returned no access token");
-  tailscaleTokenCache = {
-    token: data.access_token,
-    expiresAt: Date.now() + numberEnv(data.expires_in, 3600) * 1000,
-  };
-  return `Bearer ${data.access_token}`;
-}
-
-async function fetchTailscaleStatus(env, timeoutMs) {
-  if (!configured(env.TAILSCALE_DEVICE_ID)) return { configured: false, ok: false, status: "unconfigured" };
-  const authorization = await getTailscaleAuthorization(env, timeoutMs);
-  if (!authorization) return { configured: false, ok: false, status: "unconfigured" };
-  try {
-    const response = await fetchWithTimeout(
-      `https://api.tailscale.com/api/v2/device/${encodeURIComponent(env.TAILSCALE_DEVICE_ID)}`,
-      { headers: { Authorization: authorization, Accept: "application/json" } },
-      timeoutMs,
-    );
-    if (!response.ok) throw new Error(`Tailscale HTTP ${response.status}`);
-    const data = await response.json();
-    return {
-      configured: true, ok: true,
-      status: tailscaleOnline(data.lastSeen) ? "online" : "offline",
-      lastSeen: data.lastSeen || null,
-      expires: data.expires || null,
-      keyExpiryDisabled: Boolean(data.keyExpiryDisabled),
-    };
-  } catch (error) {
-    return { configured: true, ok: false, status: "error", error: sanitizedError(error) };
-  }
 }
 
 async function fetchCloudflareTunnelStatus(env, timeoutMs) {
@@ -156,13 +103,12 @@ async function fetchSiteStatuses(env, timeoutMs) {
 
 async function buildStatusPayload(env) {
   const timeoutMs = numberEnv(env.STATUS_TIMEOUT_MS, 4000);
-  const [tailscale, cloudflareTunnel, uptimeRobot, sites] = await Promise.all([
-    fetchTailscaleStatus(env, timeoutMs),
+  const [cloudflareTunnel, uptimeRobot, sites] = await Promise.all([
     fetchCloudflareTunnelStatus(env, timeoutMs),
     fetchUptimeRobotStatus(env, timeoutMs),
     fetchSiteStatuses(env, timeoutMs),
   ]);
-  return { checkedAt: new Date().toISOString(), providers: { tailscale, cloudflareTunnel, uptimeRobot }, sites };
+  return { checkedAt: new Date().toISOString(), providers: { cloudflareTunnel, uptimeRobot }, sites };
 }
 
 async function statusHandler(request, env) {

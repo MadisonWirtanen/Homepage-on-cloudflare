@@ -6,13 +6,5 @@ CLOUDFLARE_API_TOKEN=replace_with_tunnel_read_only_token
 CLOUDFLARE_ACCOUNT_ID=replace_with_account_id
 CLOUDFLARE_TUNNEL_ID=replace_with_tunnel_id
 
-# Tailscale: prefer OAuth for long-lived deployments.
-TAILSCALE_DEVICE_ID=replace_with_device_id
-TAILSCALE_OAUTH_CLIENT_ID=replace_with_oauth_client_id
-TAILSCALE_OAUTH_CLIENT_SECRET=replace_with_oauth_client_secret
-
-# Optional fallback instead of OAuth. Tailscale API keys expire, so OAuth is preferred.
-# TAILSCALE_API_KEY=replace_with_tailscale_api_key
-
 # UptimeRobot read-only key
 UPTIMEROBOT_API_KEY=replace_with_read_only_api_key

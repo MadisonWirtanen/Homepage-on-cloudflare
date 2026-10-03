@@ -8,31 +8,6 @@ function safeText(value, fallback = "--") {
   return String(value);
 }
 
-function formatRelativeTime(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "--";
-  const diffMs = Date.now() - date.getTime();
-  if (diffMs < 15_000) return "刚刚";
-  const minutes = Math.floor(diffMs / 60_000);
-  if (minutes < 60) return `${minutes} 分钟前`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} 小时前`;
-  const days = Math.floor(hours / 24);
-  return `${days} 天前`;
-}
-
-function formatExpiry(value, disabled) {
-  if (disabled) return "永不过期";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "--";
-  const diffMs = date.getTime() - Date.now();
-  if (diffMs <= 0) return "已过期";
-  const days = Math.ceil(diffMs / 86_400_000);
-  if (days > 365) return `${Math.ceil(days / 365)} 年`;
-  if (days > 30) return `${Math.ceil(days / 30)} 个月`;
-  return `${days} 天`;
-}
-
 function providerTone(provider) {
   if (!provider?.configured) return "idle";
   if (!provider?.ok) return "bad";
@@ -107,53 +82,86 @@ function createServiceCard(item) {
   return card;
 }
 
+function createSectionHeading(group, headingId) {
+  const heading = document.createElement("div");
+  heading.className = "section-heading";
+  const titleWrap = document.createElement("div");
+  titleWrap.className = "section-title-wrap";
+  if (group.icon) {
+    const icon = document.createElement("img");
+    icon.className = "section-icon";
+    icon.src = group.icon;
+    icon.alt = "";
+    icon.loading = "lazy";
+    icon.referrerPolicy = "no-referrer";
+    titleWrap.appendChild(icon);
+  }
+  const title = document.createElement("h2");
+  title.id = headingId;
+  title.textContent = group.title;
+  titleWrap.appendChild(title);
+  heading.appendChild(titleWrap);
+  return heading;
+}
+
+function createGroupSection(group, { columnMode = false } = {}) {
+  const section = document.createElement("section");
+  section.className = columnMode ? "section group-column" : `section group-row${group.compact ? " compact" : ""}`;
+  section.setAttribute("aria-labelledby", `${group.id}-heading`);
+  section.appendChild(createSectionHeading(group, `${group.id}-heading`));
+  const grid = document.createElement("div");
+  grid.className = columnMode ? "card-list" : "card-grid";
+  if (!columnMode) grid.style.setProperty("--columns", String(group.columns || 3));
+  group.items.forEach((item) => grid.appendChild(createServiceCard(item)));
+  section.appendChild(grid);
+  return section;
+}
+
 function renderGroups() {
-  const root = document.getElementById("groups-root");
-  root.replaceChildren();
-
+  const primary = document.getElementById("service-columns");
+  const rows = document.getElementById("groups-root");
+  primary.querySelectorAll("[data-generated-primary]").forEach((node) => node.remove());
+  rows.replaceChildren();
   for (const group of GROUPS) {
-    const section = document.createElement("section");
-    section.className = `section${group.compact ? " compact" : ""}`;
-    section.setAttribute("aria-labelledby", `${group.id}-heading`);
-
-    const heading = document.createElement("div");
-    heading.className = "section-heading";
-    heading.innerHTML = `<div><span class="eyebrow">${group.id.toUpperCase()}</span><h2 id="${group.id}-heading"></h2></div>`;
-    heading.querySelector("h2").textContent = group.title;
-    section.appendChild(heading);
-
-    const grid = document.createElement("div");
-    grid.className = "card-grid";
-    grid.style.setProperty("--columns", String(group.columns || 3));
-    group.items.forEach((item) => grid.appendChild(createServiceCard(item)));
-    section.appendChild(grid);
-    root.appendChild(section);
+    if (group.id === "public" || group.id === "contact") {
+      const section = createGroupSection(group, { columnMode: true });
+      section.dataset.generatedPrimary = "true";
+      primary.appendChild(section);
+    } else {
+      rows.appendChild(createGroupSection(group));
+    }
   }
 }
 
 function renderStatusCards() {
   const grid = document.getElementById("status-grid");
   grid.replaceChildren();
-
   for (const item of STATUS_CARDS) {
     const card = document.createElement("article");
     card.className = "card status-card";
     card.dataset.providerId = item.id;
-    card.innerHTML = `
-      <div class="card-main">
-        <img class="card-icon" src="${item.icon}" alt="" loading="lazy" referrerpolicy="no-referrer" />
-        <div class="card-copy">
-          <div class="card-title-row">
-            <span class="status-dot"></span>
-            <h3 class="card-title"></h3>
-          </div>
-          <p class="card-description"></p>
-        </div>
-      </div>
-      <div class="status-metrics"></div>
-    `;
-    card.querySelector(".card-title").textContent = item.name;
-    card.querySelector(".card-description").textContent = item.description;
+    const main = document.createElement("div");
+    main.className = "card-main";
+    main.appendChild(cardIcon(item));
+    const copy = document.createElement("div");
+    copy.className = "card-copy";
+    const titleRow = document.createElement("div");
+    titleRow.className = "card-title-row";
+    const title = document.createElement("h3");
+    title.className = "card-title";
+    title.textContent = item.name;
+    const dot = document.createElement("span");
+    dot.className = "status-dot";
+    titleRow.append(title, dot);
+    const description = document.createElement("p");
+    description.className = "card-description";
+    description.textContent = item.description;
+    copy.append(titleRow, description);
+    main.appendChild(copy);
+    card.appendChild(main);
+    const metrics = document.createElement("div");
+    metrics.className = "status-metrics";
+    card.appendChild(metrics);
     grid.appendChild(card);
   }
 }
@@ -197,12 +205,7 @@ function updateProviderCard(id, provider) {
     return;
   }
 
-  if (id === "tailscale") {
-    setMetrics(card, [
-      { label: "最近在线", value: formatRelativeTime(provider.lastSeen) },
-      { label: "密钥到期", value: formatExpiry(provider.expires, provider.keyExpiryDisabled) },
-    ]);
-  } else if (id === "cloudflareTunnel") {
+  if (id === "cloudflareTunnel") {
     const statusMap = { healthy: "Healthy", degraded: "Degraded", down: "Down", inactive: "Inactive" };
     setMetrics(card, [
       { label: "Tunnel", value: statusMap[provider.status] || provider.status },
@@ -233,7 +236,6 @@ function updateSiteHealth(sites = {}) {
 }
 
 function applyStatus(payload) {
-  updateProviderCard("tailscale", payload?.providers?.tailscale);
   updateProviderCard("cloudflareTunnel", payload?.providers?.cloudflareTunnel);
   updateProviderCard("uptimeRobot", payload?.providers?.uptimeRobot);
   updateSiteHealth(payload?.sites);
@@ -366,8 +368,6 @@ function setupSearch() {
 function applyTheme() {
   document.title = APP_CONFIG.title;
   document.documentElement.lang = APP_CONFIG.language;
-  document.getElementById("page-title").textContent = APP_CONFIG.title;
-  document.getElementById("brand-logo").src = APP_CONFIG.logo;
   const bg = document.querySelector(".background");
   bg.style.backgroundImage = `url("${APP_CONFIG.background.image}")`;
   bg.style.filter = `saturate(${APP_CONFIG.background.saturate}%) brightness(${APP_CONFIG.background.brightness}%)`;
