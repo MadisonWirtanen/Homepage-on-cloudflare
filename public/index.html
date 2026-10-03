@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://cdn.003153.xyz" crossorigin />
     <script>
       try {
-        const savedTheme = localStorage.getItem("homepage-theme-v1");
+        const savedTheme = localStorage.getItem("homepage-theme-v2");
         document.documentElement.dataset.theme = savedTheme === "light" ? "light" : "dark";
       } catch {
         document.documentElement.dataset.theme = "dark";
@@ -85,14 +85,14 @@
             <path d="M9.2 15.2c.5 1.2 1.5 1.9 2.8 2.1"></path>
           </svg>
           <span class="side-control-label">液态玻璃</span>
-          <strong id="glass-tuner-value" class="side-control-value">64%</strong>
+          <strong id="glass-tuner-value" class="side-control-value">72%</strong>
         </button>
         <div id="glass-tuner-panel" class="glass-tuner-panel" hidden>
           <div class="glass-tuner-heading">
             <span>液态玻璃透明度</span>
-            <strong id="glass-tuner-panel-value">64%</strong>
+            <strong id="glass-tuner-panel-value">72%</strong>
           </div>
-          <input id="glass-transparency" type="range" min="35" max="82" step="1" value="64" aria-label="液态玻璃透明度" />
+          <input id="glass-transparency" type="range" min="35" max="100" step="1" value="72" aria-label="液态玻璃透明度" />
           <div class="glass-tuner-scale">
             <span>更实</span>
             <span>更透</span>

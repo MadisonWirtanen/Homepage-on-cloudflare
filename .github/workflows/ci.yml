@@ -58,6 +58,10 @@ jobs:
               && grep -q 'opacity: 100' /tmp/config.js \
               && grep -q 'id="theme-toggle"' /tmp/root.html \
               && grep -q 'id="glass-tuner-toggle"' /tmp/root.html \
+              && grep -q 'id="search-selection"' /tmp/root.html \
+              && grep -q 'max="100"' /tmp/root.html \
+              && grep -q 'value="72"' /tmp/root.html \
+              && grep -q 'function beginDrag' /tmp/app.js \
               && jq -e '.ok == true and .runtime == "cloudflare-workers"' /tmp/health.json >/dev/null 2>&1; then
               PAGE_READY=1
               break

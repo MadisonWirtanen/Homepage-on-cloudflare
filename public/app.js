@@ -2,9 +2,9 @@ import { APP_CONFIG, GROUPS, STATUS_CARDS } from "./config.js";
 
 const STATUS_CACHE_KEY = "homepage-cf-status-v3";
 const WEATHER_CACHE_KEY = "homepage-cf-weather-v1";
-const GLASS_TRANSPARENCY_KEY = "homepage-glass-transparency-v1";
-const DEFAULT_GLASS_TRANSPARENCY = 64;
-const THEME_KEY = "homepage-theme-v1";
+const GLASS_TRANSPARENCY_KEY = "homepage-glass-transparency-v2";
+const DEFAULT_GLASS_TRANSPARENCY = 72;
+const THEME_KEY = "homepage-theme-v2";
 
 function safeText(value, fallback = "--") {
   if (value === null || value === undefined || value === "") return fallback;
@@ -598,16 +598,16 @@ function setupLiquidGlass() {
 }
 
 function clampGlassTransparency(value) {
-  return Math.max(35, Math.min(82, Number(value) || DEFAULT_GLASS_TRANSPARENCY));
+  return Math.max(35, Math.min(100, Number(value) || DEFAULT_GLASS_TRANSPARENCY));
 }
 
 function applyGlassTransparency(value, { persist = false } = {}) {
   const transparency = clampGlassTransparency(value);
   const opacity = 1 - transparency / 100;
 
-  const panelAlpha = 0.20 + opacity * 0.46;
-  const darkAlpha = 0.045 + opacity * 0.30;
-  const tintAlpha = 0.025 + opacity * 0.16;
+  const panelAlpha = 0.06 + opacity * 0.68;
+  const darkAlpha = 0.018 + opacity * 0.35;
+  const tintAlpha = 0.015 + opacity * 0.16;
 
   const root = document.documentElement;
   root.style.setProperty("--panel-alpha", panelAlpha.toFixed(3));
