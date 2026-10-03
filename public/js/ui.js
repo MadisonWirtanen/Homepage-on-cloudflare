@@ -111,7 +111,7 @@ function createGroupSection(group, { primary = false } = {}) {
 
   const grid = document.createElement("div");
   grid.className = primary ? "primary-grid" : "card-grid";
-  if (!primary) grid.style.setProperty("--columns", String(group.columns || 3));
+  grid.style.setProperty("--columns", String(group.columns || 3));
   group.items.forEach((item) => grid.appendChild(createServiceCard(item)));
   section.appendChild(grid);
   return section;
@@ -148,6 +148,7 @@ function createStatusSection() {
   const grid = document.createElement("div");
   grid.id = "status-grid";
   grid.className = "primary-grid";
+  grid.style.setProperty("--columns", "3");
   section.appendChild(grid);
   return section;
 }
