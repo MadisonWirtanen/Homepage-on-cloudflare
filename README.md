@@ -30,7 +30,7 @@
 "assets": {
   "directory": "./public",
   "binding": "ASSETS",
-  "not_found_handling": "single-page-application",
+  "not_found_handling": "404-page",
   "run_worker_first": ["/api/*"]
 }
 ```
@@ -102,7 +102,7 @@ https://developers.cloudflare.com/workers/configuration/secrets/
 
 - `.gitignore`：排除 `.dev.vars`、`.env` 等本地密钥文件。
 - `scripts-security-check.mjs`：检查常见 UptimeRobot/私钥泄漏模式。
-- GitHub Actions CI：每次提交执行语法检查、单元测试和密钥扫描。
+- GitHub Actions CI：每次提交执行语法检查、单元测试、Gitleaks 密钥扫描与 Playwright 浏览器 E2E。
 
 > 旧配置文件中曾以明文保存 API 凭据。迁移完成后建议把旧的 Cloudflare 和 UptimeRobot 凭据全部轮换，再使用新凭据部署。
 
@@ -290,6 +290,10 @@ public/config.js
 2. 网页 ping / HTTP HEAD 服务探测已关闭。
 3. UptimeRobot 当前使用兼容现有配置的 v2 `getMonitors` 接口；代码已将其隔离，未来迁移新版 API 不影响前端结构。
 4. 不提供搜索联想词，避免新增代理、CORS 和 Worker 调用。
+
+## 图标与外部依赖
+
+核心导航与分组图标（Safari、Gmail、GitHub、Google Scholar、Actix、Apple、YouTube、WeChat、Cloudflare、Uptime Kuma）已放入 `public/icons/`，不再依赖 Simple Icons CDN。少量第三方站点 favicon 仍使用外部来源，但前端加载失败时会自动降级为文字缩写，不影响导航可用性。
 
 ## 前端模块化与 E2E
 
