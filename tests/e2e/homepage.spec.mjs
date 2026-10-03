@@ -175,7 +175,7 @@ test("top widgets stay equal width and centered", async ({ page }) => {
   for (const item of metrics) expect(item.textAlign).toBe("center");
 });
 
-test("mobile brand is centered and uses the iOS-safe serif stack", async ({ page }, testInfo) => {
+test("mobile brand is centered and prioritizes Songti SC on iOS", async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.includes("mobile"), "Mobile-only layout assertion.");
 
   const result = await page.locator(".brand").evaluate((brand) => {
@@ -205,8 +205,9 @@ test("mobile brand is centered and uses the iOS-safe serif stack", async ({ page
   expect(result.brandWidth).toBeGreaterThan(250);
   expect(result.justifyContent).toBe("center");
   expect(result.textAlign).toBe("center");
-  expect(result.fontFamily).toContain("ui-serif");
-  expect(result.fontFamily).toContain("Songti SC");
+  expect(result.fontFamily.startsWith('"Songti SC Bold"')).toBeTruthy();
+  expect(result.fontFamily).toContain('"Songti SC"');
+  expect(result.fontFamily).not.toContain("ui-serif");
 });
 
 test("layout does not create horizontal overflow", async ({ page }) => {
