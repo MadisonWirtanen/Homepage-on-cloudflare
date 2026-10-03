@@ -5,14 +5,19 @@
   "compatibility_date": "2026-10-02",
   "workers_dev": false,
   "preview_urls": false,
+  "observability": {
+    "enabled": true
+  },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
+    "not_found_handling": "404-page",
     "run_worker_first": ["/api/*"]
   },
   "vars": {
     "STATUS_TIMEOUT_MS": "4000",
-    "WORKER_MEMORY_TTL_SECONDS": "60"
+    "WORKER_MEMORY_TTL_SECONDS": "60",
+    "TUNNEL_LINUX_NAME": "Linux",
+    "TUNNEL_COLO_NAME": "ColoCrossing"
   }
 }
