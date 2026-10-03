@@ -289,3 +289,86 @@ test("search action button keeps the same Prussian glass treatment as the select
   expect(styles.submitBorder).toBe(styles.thumbBorder);
 });
 
+test("desktop primary grids follow configured 5/3/3 columns", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Desktop-only column assertion.");
+
+  const result = await page.evaluate(() => {
+    const read = (selector) => {
+      const grid = document.querySelector(selector);
+      return {
+        columnsVar: grid.style.getPropertyValue("--columns").trim(),
+        template: getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length,
+      };
+    };
+    return {
+      public: read(".public-section .primary-grid"),
+      status: read(".status-section .primary-grid"),
+      contact: read(".contact-section .primary-grid"),
+    };
+  });
+
+  expect(result.public).toEqual({ columnsVar: "5", template: 5 });
+  expect(result.status).toEqual({ columnsVar: "3", template: 3 });
+  expect(result.contact).toEqual({ columnsVar: "3", template: 3 });
+});
+
+test("mobile navigation cards use lightweight glass while status keeps full glass", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.includes("mobile"), "Mobile-only performance assertion.");
+
+  const result = await page.evaluate(() => {
+    const nav = document.querySelector(".public-section .card");
+    const status = document.querySelector(".status-card");
+    const navStyle = getComputedStyle(nav, "::before");
+    const statusStyle = getComputedStyle(status, "::before");
+    return {
+      navBackdrop: navStyle.getPropertyValue("backdrop-filter") || navStyle.getPropertyValue("-webkit-backdrop-filter"),
+      statusBackdrop: statusStyle.getPropertyValue("backdrop-filter") || statusStyle.getPropertyValue("-webkit-backdrop-filter"),
+    };
+  });
+
+  expect(result.navBackdrop.trim()).toBe("none");
+  expect(result.statusBackdrop.trim()).not.toBe("none");
+});
+
+test("stale status remains visible when refresh fails", async ({ page }) => {
+  await page.unroute("**/api/status*");
+  await page.route("**/api/status*", async (route) => {
+    await route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
+  });
+
+  await page.evaluate((payload) => {
+    localStorage.setItem("homepage-cf-status-v3", JSON.stringify({
+      savedAt: Date.now() - 30 * 60_000,
+      value: payload,
+    }));
+  }, statusPayload);
+  await page.reload();
+
+  await expect(page.locator('[data-provider-id="cloudflareLinux"] .status-dot')).toHaveClass(/good/);
+  await expect(page.locator("#status-updated")).toContainText("刷新失败，保留缓存");
+});
+
+test("stale weather remains visible when Open-Meteo is unavailable", async ({ page }) => {
+  await page.unroute("https://api.open-meteo.com/**");
+  await page.route("https://api.open-meteo.com/**", async (route) => {
+    await route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
+  });
+
+  await page.evaluate(() => {
+    localStorage.setItem("homepage-cf-weather-v1", JSON.stringify({
+      savedAt: Date.now() - 30 * 60_000,
+      value: {
+        current: {
+          temperature_2m: 23.4,
+          apparent_temperature: 24.1,
+          weather_code: 1,
+        },
+      },
+    }));
+  });
+  await page.reload();
+
+  await expect(page.locator("#weather-value")).toContainText("23°C");
+  await expect(page.locator("#weather-extra")).toContainText("缓存");
+});
+
