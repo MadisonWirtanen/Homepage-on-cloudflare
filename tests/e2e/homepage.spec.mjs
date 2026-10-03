@@ -236,3 +236,56 @@ test("self-hosted title font asset is tiny and available", async ({ request }) =
   expect(body.length).toBeGreaterThan(1000);
   expect(body.length).toBeLessThan(10000);
 });
+
+test("document language stays zh-CN after JavaScript initialization", async ({ page }) => {
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+});
+
+test("generated build manifest identifies the current Git commit", async ({ request }) => {
+  const response = await request.get("/build.json");
+  expect(response.status()).toBe(200);
+  const payload = await response.json();
+  expect(payload.commit).toMatch(/^[0-9a-f]{40}$/);
+});
+
+test("degraded provider uses warning tone instead of failure tone", async ({ page }) => {
+  await page.unroute("**/api/status*");
+  const degraded = JSON.parse(JSON.stringify(statusPayload));
+  degraded.providers.uptimeRobot = {
+    ...degraded.providers.uptimeRobot,
+    status: "degraded",
+    up: 6,
+    down: 1,
+  };
+
+  await page.route("**/api/status*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(degraded),
+    });
+  });
+  await page.evaluate(() => localStorage.removeItem("homepage-cf-status-v3"));
+  await page.reload();
+
+  const dot = page.locator('[data-provider-id="uptimeRobot"] .status-dot');
+  await expect(dot).toHaveClass(/warn/);
+  await expect(dot).not.toHaveClass(/bad/);
+});
+
+test("search action button keeps the same Prussian glass treatment as the selector", async ({ page }) => {
+  const styles = await page.evaluate(() => {
+    const thumb = getComputedStyle(document.querySelector("#search-selection"));
+    const submit = getComputedStyle(document.querySelector(".search-submit"));
+    return {
+      thumbBackground: thumb.backgroundImage,
+      submitBackground: submit.backgroundImage,
+      thumbBorder: thumb.borderColor,
+      submitBorder: submit.borderColor,
+    };
+  });
+
+  expect(styles.submitBackground).toBe(styles.thumbBackground);
+  expect(styles.submitBorder).toBe(styles.thumbBorder);
+});
+
