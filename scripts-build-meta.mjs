@@ -3,9 +3,10 @@ import { writeFile } from "node:fs/promises";
 
 function resolveCommit() {
   const candidates = [
+    process.env.WORKERS_CI_COMMIT_SHA,
     process.env.GITHUB_SHA,
-    process.env.CF_COMMIT_SHA,
     process.env.CF_PAGES_COMMIT_SHA,
+    process.env.CF_COMMIT_SHA,
   ];
 
   for (const value of candidates) {
