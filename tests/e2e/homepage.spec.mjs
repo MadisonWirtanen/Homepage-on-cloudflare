@@ -77,13 +77,18 @@ test("search thumb is visible, aligned and clickable", async ({ page }) => {
 
   await bing.click();
   await expect(bing).toHaveAttribute("aria-pressed", "true");
-  await page.waitForTimeout(450);
+
+  await expect.poll(async () => {
+    const nextThumb = await thumb.boundingBox();
+    const nextButton = await bing.boundingBox();
+    if (!nextThumb || !nextButton) return Number.POSITIVE_INFINITY;
+    return Math.abs(nextThumb.x - nextButton.x);
+  }, { timeout: 5_000 }).toBeLessThan(4);
 
   const nextThumb = await thumb.boundingBox();
   const nextButton = await bing.boundingBox();
   expect(nextThumb).not.toBeNull();
   expect(nextButton).not.toBeNull();
-  expect(Math.abs(nextThumb.x - nextButton.x)).toBeLessThan(4);
   expect(Math.abs(nextThumb.width - nextButton.width)).toBeLessThan(4);
 });
 
