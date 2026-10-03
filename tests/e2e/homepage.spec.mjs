@@ -175,7 +175,7 @@ test("top widgets stay equal width and centered", async ({ page }) => {
   for (const item of metrics) expect(item.textAlign).toBe("center");
 });
 
-test("mobile brand is centered and prioritizes Songti SC on iOS", async ({ page }, testInfo) => {
+test("mobile brand is centered and loads the self-hosted title font", async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.includes("mobile"), "Mobile-only layout assertion.");
 
   const result = await page.locator(".brand").evaluate((brand) => {
@@ -205,9 +205,13 @@ test("mobile brand is centered and prioritizes Songti SC on iOS", async ({ page 
   expect(result.brandWidth).toBeGreaterThan(250);
   expect(result.justifyContent).toBe("center");
   expect(result.textAlign).toBe("center");
-  expect(result.fontFamily.startsWith('"Songti SC Bold"')).toBeTruthy();
-  expect(result.fontFamily).toContain('"Songti SC"');
-  expect(result.fontFamily).not.toContain("ui-serif");
+  expect(result.fontFamily.startsWith('"Homepage Title Serif"')).toBeTruthy();
+
+  const customFontLoaded = await page.evaluate(async () => {
+    await document.fonts.load('700 32px "Homepage Title Serif"', "知无涯者");
+    return document.fonts.check('700 32px "Homepage Title Serif"', "知无涯者");
+  });
+  expect(customFontLoaded).toBeTruthy();
 });
 
 test("layout does not create horizontal overflow", async ({ page }) => {
@@ -222,4 +226,13 @@ test("unknown routes return the static 404 page", async ({ request }) => {
   const response = await request.get("/definitely-not-a-real-page");
   expect(response.status()).toBe(404);
   expect(await response.text()).toContain("页面不存在");
+});
+
+
+test("self-hosted title font asset is tiny and available", async ({ request }) => {
+  const response = await request.get("/fonts/homepage-title-serif.woff2");
+  expect(response.status()).toBe(200);
+  const body = await response.body();
+  expect(body.length).toBeGreaterThan(1000);
+  expect(body.length).toBeLessThan(10000);
 });
