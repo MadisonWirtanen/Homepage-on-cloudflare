@@ -38,12 +38,20 @@ jobs:
 
           ROOT_CODE="$(fetch_code "/" /tmp/root.html)"
           APP_CODE="$(fetch_code "/app.js" /tmp/app.js)"
+          CONFIG_CODE="$(fetch_code "/config.js" /tmp/config.js)"
+          ICON_CODE="$(fetch_code "/icons/uptime-kuma.svg" /tmp/uptime-kuma.svg)"
           HEALTH_CODE="$(fetch_code "/api/health?ci=$GITHUB_SHA" /tmp/health.json)"
 
           test "$ROOT_CODE" = "200"
           test "$APP_CODE" = "200"
+          test "$CONFIG_CODE" = "200"
+          test "$ICON_CODE" = "200"
           test "$HEALTH_CODE" = "200"
+
           grep -q '<title>知无涯者</title>' /tmp/root.html
+          grep -q 'id="page-title">知无涯者</h1>' /tmp/root.html
+          grep -q 'https://img.003153.xyz/index.php' /tmp/config.js
+          grep -q 'https://cdn.003153.xyz/%E7%9F%A5%E6%97%A0%E6%B6%AF%E8%80%85.png' /tmp/config.js
           jq -e '.ok == true and .runtime == "cloudflare-workers"' /tmp/health.json >/dev/null
 
           STATUS_READY=0
@@ -53,7 +61,8 @@ jobs:
               .providers.cloudflareTunnel.configured == true and
               .providers.cloudflareTunnel.ok == true and
               .providers.uptimeRobot.configured == true and
-              .providers.uptimeRobot.ok == true
+              .providers.uptimeRobot.ok == true and
+              (.sites | not)
             ' /tmp/status.json >/dev/null 2>&1; then
               STATUS_READY=1
               break
@@ -67,7 +76,6 @@ jobs:
             exit 1
           fi
 
-
           jq '{
             checkedAt,
             cloudflareTunnel: {
@@ -80,10 +88,5 @@ jobs:
               status: .providers.uptimeRobot.status,
               up: .providers.uptimeRobot.up,
               down: .providers.uptimeRobot.down
-            },
-            sites: (.sites | with_entries(.value = {
-              online: .value.online,
-              status: .value.status,
-              latency: .value.latency
-            }))
+            }
           }' /tmp/status.json

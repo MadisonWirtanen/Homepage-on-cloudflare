@@ -2,7 +2,7 @@
 
 一个为 Cloudflare Workers + Static Assets 重构的个人主页/服务导航站。
 
-这个仓库根据原先的 Homepage 配置重新实现，目标不是把完整的 Next.js/Docker 版 Homepage 硬塞进 Workers，而是保留你实际使用的导航、天气、搜索、Cloudflare Tunnel、UptimeRobot 和网站可用性检测，同时让主页本身完全脱离 VPS。
+这个仓库根据原先的 Homepage 配置重新实现，目标不是把完整的 Next.js/Docker 版 Homepage 硬塞进 Workers，而是保留你实际使用的导航、天气、搜索、Cloudflare Tunnel、UptimeRobot，同时让主页本身完全脱离 VPS。
 
 即使云服务器、本地服务器或 Cloudflare Tunnel 宕机，主页仍然由 Cloudflare 提供，并显示故障状态。
 
@@ -22,7 +22,6 @@
          -> 一个 Cloudflare Worker 请求
               |-- Cloudflare Tunnel API
               |-- UptimeRobot API
-              `-- 自有网站 HTTP HEAD 检测
 ```
 
 `wrangler.jsonc` 使用：
@@ -52,7 +51,6 @@
 - 百度 / Bing / Google 搜索。
 - Cloudflare Tunnel：Tunnel 状态。
 - UptimeRobot：正常/异常监控数量。
-- Alist、文件快递柜、News、DuckAI、临时聊天室、博客的 HTTP 可用性和延迟。
 - 手动刷新状态。
 - 状态失败不会影响静态主页加载。
 
@@ -70,7 +68,7 @@
 /api/status
 ```
 
-Worker 内部并行聚合平台状态和站点检测后一次返回。
+Worker 内部只聚合 Cloudflare Tunnel 与 UptimeRobot 状态后一次返回。
 
 ### 浏览器缓存 10 分钟
 
@@ -162,7 +160,6 @@ npx wrangler deploy
 - 导航是否正常；
 - 天气是否正常；
 - 两张 Status 卡片是否返回数据；
-- 自有服务卡片是否显示延迟/离线。
 
 当前账户的 `*.workers.dev` 入口在实际部署验证中持续返回 Cloudflare 平台 1101，因此本项目生产环境不依赖 `workers.dev`。正式环境使用 **Settings -> Domains & Routes** 下的自定义域名 / Worker Route。
 
@@ -221,36 +218,14 @@ public/config.js
   href: "https://service.example.com/",
   description: "服务说明",
   target: "_blank",
-  healthCheck: true,
 }
 ```
 
-设置 `healthCheck: true` 后，该服务会加入 `/api/status` 的 HTTP HEAD 健康检查。
-
-如果打开链接和检查地址不同：
-
-```js
-healthUrl: "https://service.example.com/health"
-```
+网页级 ping / HTTP HEAD 探测已关闭。服务卡片不会再主动探测目标网站，也不会显示延迟/在线角标。
 
 **不要把密码、API Token、Access Service Token、私钥放进 `public/config.js`。**
 `public/` 下内容全部是公开静态资源。
 
-## 自有网站检查开关
-
-默认：
-
-```jsonc
-"DIRECT_SITE_CHECKS": "true"
-```
-
-如果以后只想保留 UptimeRobot 汇总，进一步减少外部探测，把 `wrangler.jsonc` 改成：
-
-```jsonc
-"DIRECT_SITE_CHECKS": "false"
-```
-
-Cloudflare Tunnel、UptimeRobot 两张主状态卡不会受影响。
 
 ## 项目结构
 
@@ -290,7 +265,7 @@ Cloudflare Tunnel、UptimeRobot 两张主状态卡不会受影响。
 ## 已知限制
 
 1. 不包含原版 Homepage 的 Docker Socket、容器 CPU/RAM/网络统计。
-2. 不做 ICMP ping，改用 HTTP HEAD 判断服务是否实际可访问。
+2. 网页 ping / HTTP HEAD 服务探测已关闭。
 3. UptimeRobot 当前使用兼容现有配置的 v2 `getMonitors` 接口；代码已将其隔离，未来迁移新版 API 不影响前端结构。
 4. 不提供搜索联想词，避免新增代理、CORS 和 Worker 调用。
 

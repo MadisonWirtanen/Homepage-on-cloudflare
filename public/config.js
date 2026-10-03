@@ -54,7 +54,6 @@ export const GROUPS = [
         href: "https://alist.xn--rgvt7o95i1ni.com/",
         description: "个人影音资源网盘",
         target: "_blank",
-        healthCheck: true,
       },
       {
         id: "filebox",
@@ -63,7 +62,6 @@ export const GROUPS = [
         href: "https://box.xn--rgvt7o95i1ni.com/",
         description: "使用匿名口令临时分享文本、文件",
         target: "_blank",
-        healthCheck: true,
       },
       {
         id: "news",
@@ -72,17 +70,14 @@ export const GROUPS = [
         href: "https://news.003153.xyz/",
         description: "优雅阅读实时和最热新闻",
         target: "_blank",
-        healthCheck: true,
       },
       {
         id: "duckai",
         name: "DuckAI",
         icon: "https://www.faviconextractor.com/favicon/duck.ai",
         href: "https://ddg.003153.xyz/https://duck.ai/",
-        healthUrl: "https://ddg.003153.xyz/",
         description: "可免费直连 DuckDuckGo 提供的 AI 服务",
         target: "_blank",
-        healthCheck: true,
       },
       {
         id: "wechat",
@@ -91,7 +86,6 @@ export const GROUPS = [
         href: "https://wx.003153.xyz/",
         description: "无上下文记录临时聊天室",
         target: "_blank",
-        healthCheck: true,
       },
     ],
   },
@@ -107,7 +101,6 @@ export const GROUPS = [
         icon: "https://cdn.003153.xyz/%E7%9F%A5%E6%97%A0%E6%B6%AF%E8%80%85.png",
         href: "https://blog.xn--rgvt7o95i1ni.com/",
         target: "_blank",
-        healthCheck: true,
       },
       {
         id: "github",
@@ -229,13 +222,3 @@ export const GROUPS = [
     ],
   },
 ];
-
-export const HEALTH_CHECKS = GROUPS.flatMap((group) =>
-  group.items
-    .filter((item) => item.healthCheck && item.href)
-    .map((item) => ({
-      id: item.id,
-      name: item.name,
-      url: item.healthUrl || item.href,
-    })),
-);

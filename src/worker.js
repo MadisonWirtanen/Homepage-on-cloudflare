@@ -1,4 +1,3 @@
-import { HEALTH_CHECKS } from "../public/config.js";
 import { isCrossSiteRequest, summarizeUptimeRobot } from "./lib.js";
 
 let statusMemoryCache = { expiresAt: 0, payload: null };
@@ -74,41 +73,13 @@ async function fetchUptimeRobotStatus(env, timeoutMs) {
   }
 }
 
-async function checkSite(check, timeoutMs) {
-  const started = Date.now();
-  try {
-    const response = await fetchWithTimeout(check.url, {
-      method: "HEAD", redirect: "follow",
-      headers: {
-        "User-Agent": "Homepage-on-Cloudflare/1.0 status-check",
-        Accept: "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
-      },
-    }, timeoutMs);
-    return { id: check.id, online: response.status < 500, status: response.status, latency: Date.now() - started };
-  } catch (error) {
-    return { id: check.id, online: false, status: null, latency: Date.now() - started, error: sanitizedError(error) };
-  }
-}
-
-async function fetchSiteStatuses(env, timeoutMs) {
-  if (String(env.DIRECT_SITE_CHECKS || "true").toLowerCase() === "false") return {};
-  const results = [];
-  for (let index = 0; index < HEALTH_CHECKS.length; index += 3) {
-    const batch = HEALTH_CHECKS.slice(index, index + 3);
-    const batchResults = await Promise.all(batch.map((check) => checkSite(check, timeoutMs)));
-    results.push(...batchResults);
-  }
-  return Object.fromEntries(results.map((result) => [result.id, result]));
-}
-
 async function buildStatusPayload(env) {
   const timeoutMs = numberEnv(env.STATUS_TIMEOUT_MS, 4000);
-  const [cloudflareTunnel, uptimeRobot, sites] = await Promise.all([
+  const [cloudflareTunnel, uptimeRobot] = await Promise.all([
     fetchCloudflareTunnelStatus(env, timeoutMs),
     fetchUptimeRobotStatus(env, timeoutMs),
-    fetchSiteStatuses(env, timeoutMs),
   ]);
-  return { checkedAt: new Date().toISOString(), providers: { cloudflareTunnel, uptimeRobot }, sites };
+  return { checkedAt: new Date().toISOString(), providers: { cloudflareTunnel, uptimeRobot } };
 }
 
 async function statusHandler(request, env) {

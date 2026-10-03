@@ -1,6 +1,6 @@
 import { APP_CONFIG, GROUPS, STATUS_CARDS } from "./config.js";
 
-const STATUS_CACHE_KEY = "homepage-cf-status-v1";
+const STATUS_CACHE_KEY = "homepage-cf-status-v2";
 const WEATHER_CACHE_KEY = "homepage-cf-weather-v1";
 
 function safeText(value, fallback = "--") {
@@ -11,10 +11,9 @@ function safeText(value, fallback = "--") {
 function providerTone(provider) {
   if (!provider?.configured) return "idle";
   if (!provider?.ok) return "bad";
-  const status = provider.status;
-  if (["healthy", "up", "online"].includes(status)) return "good";
-  if (["degraded", "partial", "warning"].includes(status)) return "warn";
-  if (["down", "offline", "error"].includes(status)) return "bad";
+  if (["healthy", "up", "online"].includes(provider.status)) return "good";
+  if (["degraded", "partial", "warning"].includes(provider.status)) return "warn";
+  if (["down", "offline", "error"].includes(provider.status)) return "bad";
   return "good";
 }
 
@@ -34,6 +33,7 @@ function cardIcon(item) {
     });
     return img;
   }
+
   const abbr = document.createElement("div");
   abbr.className = "card-abbr";
   abbr.textContent = item.abbr || item.name?.slice(0, 1) || "?";
@@ -44,6 +44,7 @@ function createServiceCard(item) {
   const card = document.createElement(item.href ? "a" : "article");
   card.className = "card";
   card.dataset.itemId = item.id;
+
   if (item.href) {
     card.href = item.href;
     card.target = item.target || "_blank";
@@ -56,6 +57,7 @@ function createServiceCard(item) {
 
   const copy = document.createElement("div");
   copy.className = "card-copy";
+
   const title = document.createElement("h3");
   title.className = "card-title";
   title.textContent = item.name;
@@ -70,114 +72,163 @@ function createServiceCard(item) {
 
   main.appendChild(copy);
   card.appendChild(main);
-
-  if (item.healthCheck) {
-    const health = document.createElement("span");
-    health.className = "site-health";
-    health.dataset.healthId = item.id;
-    health.innerHTML = '<span class="status-dot"></span><span class="health-text">待检查</span>';
-    card.appendChild(health);
-  }
-
   return card;
 }
 
-function createSectionHeading(group, headingId) {
+function createSectionHeading({ title, icon, id, actions = null }) {
   const heading = document.createElement("div");
   heading.className = "section-heading";
+
   const titleWrap = document.createElement("div");
   titleWrap.className = "section-title-wrap";
-  if (group.icon) {
-    const icon = document.createElement("img");
-    icon.className = "section-icon";
-    icon.src = group.icon;
-    icon.alt = "";
-    icon.loading = "lazy";
-    icon.referrerPolicy = "no-referrer";
-    titleWrap.appendChild(icon);
+
+  if (icon) {
+    const img = document.createElement("img");
+    img.className = "section-icon";
+    img.src = icon;
+    img.alt = "";
+    img.loading = "lazy";
+    img.referrerPolicy = "no-referrer";
+    titleWrap.appendChild(img);
   }
-  const title = document.createElement("h2");
-  title.id = headingId;
-  title.textContent = group.title;
-  titleWrap.appendChild(title);
+
+  const h2 = document.createElement("h2");
+  h2.id = id;
+  h2.textContent = title;
+  titleWrap.appendChild(h2);
   heading.appendChild(titleWrap);
+
+  if (actions) heading.appendChild(actions);
   return heading;
 }
 
-function createGroupSection(group, { columnMode = false } = {}) {
+function createGroupSection(group, { primary = false } = {}) {
   const section = document.createElement("section");
-  section.className = columnMode ? "section group-column" : `section group-row${group.compact ? " compact" : ""}`;
-  section.setAttribute("aria-labelledby", `${group.id}-heading`);
-  section.appendChild(createSectionHeading(group, `${group.id}-heading`));
+  section.className = `section ${primary ? "primary-section" : "group-row"}${group.compact ? " compact" : ""}`;
+  const headingId = `${group.id}-heading`;
+  section.setAttribute("aria-labelledby", headingId);
+  section.appendChild(createSectionHeading({
+    title: group.title,
+    icon: group.icon,
+    id: headingId,
+  }));
+
   const grid = document.createElement("div");
-  grid.className = columnMode ? "card-list" : "card-grid";
-  if (!columnMode) grid.style.setProperty("--columns", String(group.columns || 3));
+  grid.className = primary ? "primary-grid" : "card-grid";
+  if (!primary) grid.style.setProperty("--columns", String(group.columns || 3));
   group.items.forEach((item) => grid.appendChild(createServiceCard(item)));
   section.appendChild(grid);
   return section;
 }
 
+function renderStatusSection() {
+  const root = document.getElementById("primary-root");
+
+  const actions = document.createElement("div");
+  actions.className = "status-actions";
+
+  const updated = document.createElement("span");
+  updated.id = "status-updated";
+  updated.className = "muted";
+  updated.textContent = "尚未检查";
+
+  const refresh = document.createElement("button");
+  refresh.id = "refresh-status";
+  refresh.className = "ghost-button";
+  refresh.type = "button";
+  refresh.textContent = "刷新";
+
+  actions.append(updated, refresh);
+
+  const section = document.createElement("section");
+  section.className = "section primary-section";
+  section.setAttribute("aria-labelledby", "status-heading");
+  section.appendChild(createSectionHeading({
+    title: "Status",
+    icon: "/icons/uptime-kuma.svg",
+    id: "status-heading",
+    actions,
+  }));
+
+  const grid = document.createElement("div");
+  grid.id = "status-grid";
+  grid.className = "primary-grid";
+  section.appendChild(grid);
+  root.appendChild(section);
+}
+
+function renderStatusCards() {
+  const grid = document.getElementById("status-grid");
+  grid.replaceChildren();
+
+  for (const item of STATUS_CARDS) {
+    const card = document.createElement("article");
+    card.className = "card status-card";
+    card.dataset.providerId = item.id;
+
+    const main = document.createElement("div");
+    main.className = "card-main";
+    main.appendChild(cardIcon(item));
+
+    const copy = document.createElement("div");
+    copy.className = "card-copy";
+
+    const titleRow = document.createElement("div");
+    titleRow.className = "card-title-row";
+
+    const title = document.createElement("h3");
+    title.className = "card-title";
+    title.textContent = item.name;
+
+    const dot = document.createElement("span");
+    dot.className = "status-dot";
+    titleRow.append(title, dot);
+
+    const description = document.createElement("p");
+    description.className = "card-description";
+    description.textContent = item.description;
+
+    copy.append(titleRow, description);
+    main.appendChild(copy);
+    card.appendChild(main);
+
+    const metrics = document.createElement("div");
+    metrics.className = "status-metrics";
+    card.appendChild(metrics);
+
+    grid.appendChild(card);
+  }
+}
+
 function renderGroups() {
-  const primary = document.getElementById("service-columns");
+  const primary = document.getElementById("primary-root");
   const rows = document.getElementById("groups-root");
-  primary.querySelectorAll("[data-generated-primary]").forEach((node) => node.remove());
-  rows.replaceChildren();
+
   for (const group of GROUPS) {
     if (group.id === "public" || group.id === "contact") {
-      const section = createGroupSection(group, { columnMode: true });
-      section.dataset.generatedPrimary = "true";
-      primary.appendChild(section);
+      primary.appendChild(createGroupSection(group, { primary: true }));
     } else {
       rows.appendChild(createGroupSection(group));
     }
   }
 }
 
-function renderStatusCards() {
-  const grid = document.getElementById("status-grid");
-  grid.replaceChildren();
-  for (const item of STATUS_CARDS) {
-    const card = document.createElement("article");
-    card.className = "card status-card";
-    card.dataset.providerId = item.id;
-    const main = document.createElement("div");
-    main.className = "card-main";
-    main.appendChild(cardIcon(item));
-    const copy = document.createElement("div");
-    copy.className = "card-copy";
-    const titleRow = document.createElement("div");
-    titleRow.className = "card-title-row";
-    const title = document.createElement("h3");
-    title.className = "card-title";
-    title.textContent = item.name;
-    const dot = document.createElement("span");
-    dot.className = "status-dot";
-    titleRow.append(title, dot);
-    const description = document.createElement("p");
-    description.className = "card-description";
-    description.textContent = item.description;
-    copy.append(titleRow, description);
-    main.appendChild(copy);
-    card.appendChild(main);
-    const metrics = document.createElement("div");
-    metrics.className = "status-metrics";
-    card.appendChild(metrics);
-    grid.appendChild(card);
-  }
-}
-
 function setMetrics(card, metrics) {
   const container = card.querySelector(".status-metrics");
   container.replaceChildren();
+
   for (const metric of metrics) {
     const block = document.createElement("div");
     block.className = "metric";
+
     const label = document.createElement("span");
     label.className = "metric-label";
     label.textContent = metric.label;
+
     const value = document.createElement("span");
     value.className = "metric-value";
     value.textContent = safeText(metric.value);
+
     block.append(label, value);
     container.appendChild(block);
   }
@@ -186,6 +237,7 @@ function setMetrics(card, metrics) {
 function updateProviderCard(id, provider) {
   const card = document.querySelector(`[data-provider-id="${id}"]`);
   if (!card) return;
+
   const dot = card.querySelector(".status-dot");
   dot.className = `status-dot ${providerTone(provider)}`;
 
@@ -219,29 +271,16 @@ function updateProviderCard(id, provider) {
   }
 }
 
-function updateSiteHealth(sites = {}) {
-  document.querySelectorAll("[data-health-id]").forEach((badge) => {
-    const item = sites[badge.dataset.healthId];
-    const dot = badge.querySelector(".status-dot");
-    const text = badge.querySelector(".health-text");
-    if (!item) {
-      dot.className = "status-dot";
-      text.textContent = "未检查";
-      return;
-    }
-    dot.className = `status-dot ${item.online ? "good" : "bad"}`;
-    text.textContent = item.online ? `${Math.round(item.latency || 0)} ms` : "离线";
-    badge.title = item.status ? `HTTP ${item.status}` : safeText(item.error, "检测失败");
-  });
-}
-
 function applyStatus(payload) {
   updateProviderCard("cloudflareTunnel", payload?.providers?.cloudflareTunnel);
   updateProviderCard("uptimeRobot", payload?.providers?.uptimeRobot);
-  updateSiteHealth(payload?.sites);
 
   const updated = document.getElementById("status-updated");
-  updated.textContent = payload?.checkedAt ? `检查于 ${new Date(payload.checkedAt).toLocaleTimeString("zh-CN", { hour12: false })}` : "状态已更新";
+  if (updated) {
+    updated.textContent = payload?.checkedAt
+      ? `检查于 ${new Date(payload.checkedAt).toLocaleTimeString("zh-CN", { hour12: false })}`
+      : "状态已更新";
+  }
 }
 
 function readCache(key, maxAgeMs) {
@@ -260,7 +299,7 @@ function writeCache(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), value }));
   } catch {
-    // Storage can be unavailable in strict privacy modes. The page still works without it.
+    // The page works without local storage.
   }
 }
 
@@ -276,7 +315,8 @@ async function refreshStatus({ force = false } = {}) {
     }
   }
 
-  button.disabled = true;
+  if (button) button.disabled = true;
+
   try {
     const response = await fetch("/api/status", {
       headers: { Accept: "application/json" },
@@ -287,9 +327,10 @@ async function refreshStatus({ force = false } = {}) {
     writeCache(STATUS_CACHE_KEY, payload);
     applyStatus(payload);
   } catch (error) {
-    document.getElementById("status-updated").textContent = `状态获取失败：${error.message}`;
+    const updated = document.getElementById("status-updated");
+    if (updated) updated.textContent = `状态获取失败：${error.message}`;
   } finally {
-    button.disabled = false;
+    if (button) button.disabled = false;
   }
 }
 
@@ -315,6 +356,7 @@ async function updateWeather() {
       current: "temperature_2m,weather_code,apparent_temperature",
       timezone: weather.timezone,
     });
+
     try {
       const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -330,37 +372,69 @@ async function updateWeather() {
   const current = payload.current || {};
   const temp = Number.isFinite(current.temperature_2m) ? `${Math.round(current.temperature_2m)}°C` : "--";
   document.getElementById("weather-value").textContent = `${temp} · ${weatherCodeText(current.weather_code)}`;
-  document.getElementById("weather-extra").textContent = `${weather.label} · 体感 ${Number.isFinite(current.apparent_temperature) ? `${Math.round(current.apparent_temperature)}°C` : "--"}`;
+  document.getElementById("weather-extra").textContent =
+    `${weather.label} · 体感 ${Number.isFinite(current.apparent_temperature) ? `${Math.round(current.apparent_temperature)}°C` : "--"}`;
 }
 
 function startClock() {
   const dateEl = document.getElementById("date-value");
   const weekdayEl = document.getElementById("weekday-value");
   const timeEl = document.getElementById("time-value");
+
   const tick = () => {
     const now = new Date();
     dateEl.textContent = now.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" });
     weekdayEl.textContent = now.toLocaleDateString("zh-CN", { weekday: "long" });
     timeEl.textContent = now.toLocaleTimeString("zh-CN", { hour12: false });
   };
+
   tick();
   setInterval(tick, 1000);
 }
 
 function setupSearch() {
-  const select = document.getElementById("search-provider");
-  for (const provider of APP_CONFIG.searchProviders) {
-    const option = document.createElement("option");
-    option.value = provider.id;
-    option.textContent = provider.label;
-    select.appendChild(option);
+  const providersRoot = document.getElementById("search-providers");
+  const form = document.getElementById("search-form");
+  const input = document.getElementById("search-input");
+  let selectedId = APP_CONFIG.searchProviders[0]?.id;
+
+  function selectProvider(id) {
+    selectedId = id;
+    providersRoot.querySelectorAll(".search-provider").forEach((button) => {
+      const active = button.dataset.providerId === selectedId;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
   }
 
-  document.getElementById("search-form").addEventListener("submit", (event) => {
+  for (const provider of APP_CONFIG.searchProviders) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "search-provider";
+    button.dataset.providerId = provider.id;
+    button.textContent = provider.label;
+    button.setAttribute("aria-pressed", "false");
+    button.addEventListener("click", () => {
+      selectProvider(provider.id);
+      input.focus();
+    });
+    providersRoot.appendChild(button);
+  }
+
+  selectProvider(selectedId);
+
+  form.addEventListener("submit", (event) => {
     event.preventDefault();
-    const query = document.getElementById("search-input").value.trim();
-    if (!query) return;
-    const provider = APP_CONFIG.searchProviders.find((item) => item.id === select.value) || APP_CONFIG.searchProviders[0];
+    const query = input.value.trim();
+    if (!query) {
+      input.focus();
+      return;
+    }
+
+    const provider =
+      APP_CONFIG.searchProviders.find((item) => item.id === selectedId) ||
+      APP_CONFIG.searchProviders[0];
+
     window.open(`${provider.url}${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer");
   });
 }
@@ -368,21 +442,29 @@ function setupSearch() {
 function applyTheme() {
   document.title = APP_CONFIG.title;
   document.documentElement.lang = APP_CONFIG.language;
+  document.getElementById("page-title").textContent = APP_CONFIG.title;
+  document.getElementById("brand-logo").src = APP_CONFIG.logo;
+
   const bg = document.querySelector(".background");
   bg.style.backgroundImage = `url("${APP_CONFIG.background.image}")`;
-  bg.style.filter = `saturate(${APP_CONFIG.background.saturate}%) brightness(${APP_CONFIG.background.brightness}%)`;
+  bg.style.filter =
+    `saturate(${APP_CONFIG.background.saturate}%) brightness(${APP_CONFIG.background.brightness}%)`;
   bg.style.opacity = String(APP_CONFIG.background.opacity / 100);
 }
 
 function init() {
   applyTheme();
+  renderStatusSection();
   renderStatusCards();
   renderGroups();
   setupSearch();
   startClock();
   updateWeather();
   refreshStatus();
-  document.getElementById("refresh-status").addEventListener("click", () => refreshStatus({ force: true }));
+
+  document.getElementById("refresh-status").addEventListener("click", () => {
+    refreshStatus({ force: true });
+  });
 }
 
 init();

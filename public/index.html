@@ -6,6 +6,7 @@
     <meta name="description" content="知无涯者 · 个人服务与资源导航" />
     <title>知无涯者</title>
     <link rel="icon" href="https://cdn.003153.xyz/%E7%9F%A5%E6%97%A0%E6%B6%AF%E8%80%85.png" />
+    <link rel="preconnect" href="https://cdn.003153.xyz" crossorigin />
     <link rel="stylesheet" href="/app.css" />
   </head>
   <body>
@@ -13,6 +14,11 @@
 
     <main class="page-shell">
       <header class="topbar">
+        <div class="brand">
+          <img id="brand-logo" class="brand-logo" alt="知无涯者" />
+          <h1 id="page-title">知无涯者</h1>
+        </div>
+
         <div class="top-widgets">
           <div class="widget-block" id="weather-widget" aria-live="polite">
             <strong id="weather-value">--</strong>
@@ -29,28 +35,18 @@
         </div>
       </header>
 
-      <form id="search-form" class="search" role="search">
-        <select id="search-provider" aria-label="搜索引擎"></select>
-        <input id="search-input" type="search" autocomplete="off" placeholder="搜索…" aria-label="搜索内容" />
-        <button type="submit">搜索</button>
+      <form id="search-form" class="search-shell" role="search">
+        <div id="search-providers" class="search-providers" aria-label="搜索引擎"></div>
+        <div class="search-input-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"></path>
+          </svg>
+          <input id="search-input" type="search" autocomplete="off" placeholder="搜索…" aria-label="搜索内容" />
+        </div>
+        <button class="search-submit" type="submit" aria-label="搜索">搜索</button>
       </form>
 
-      <div id="service-columns" class="service-columns">
-        <section class="section group-column status-column" aria-labelledby="status-heading">
-          <div class="section-heading">
-            <div class="section-title-wrap">
-              <img class="section-icon" src="/icons/uptime-kuma.svg" alt="" loading="lazy" referrerpolicy="no-referrer" />
-              <h2 id="status-heading">Status</h2>
-            </div>
-            <div class="status-actions">
-              <span id="status-updated" class="muted">尚未检查</span>
-              <button id="refresh-status" class="ghost-button" type="button">刷新</button>
-            </div>
-          </div>
-          <div id="status-grid" class="card-list"></div>
-        </section>
-      </div>
-
+      <div id="primary-root" class="primary-root"></div>
       <div id="groups-root"></div>
     </main>
 
