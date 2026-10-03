@@ -711,7 +711,9 @@ button, a {
   }
 
   .brand h1 {
-    font-family: ui-serif, "Songti SC", "STSong", serif;
+    font-family: "Songti SC Bold", "Songti SC", "STSongti-SC-Bold", "STSong", serif;
+    font-weight: 700;
+    font-synthesis: none;
     text-align: center;
   }
 
