@@ -53,6 +53,9 @@ jobs:
               && grep -q 'id="page-title">知无涯者</h1>' /tmp/root.html \
               && grep -q 'https://img.003153.xyz/index.php' /tmp/config.js \
               && grep -q 'https://cdn.003153.xyz/%E7%9F%A5%E6%97%A0%E6%B6%AF%E8%80%85.png' /tmp/config.js \
+              && grep -q 'saturate: 82' /tmp/config.js \
+              && grep -q 'brightness: 68' /tmp/config.js \
+              && grep -q 'opacity: 100' /tmp/config.js \
               && jq -e '.ok == true and .runtime == "cloudflare-workers"' /tmp/health.json >/dev/null 2>&1; then
               PAGE_READY=1
               break
