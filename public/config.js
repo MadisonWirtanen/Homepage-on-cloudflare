@@ -55,7 +55,7 @@ export const GROUPS = [
     id: "public",
     title: "Public",
     icon: "/icons/safari.svg",
-    columns: 3,
+    columns: 5,
     items: [
       {
         id: "alist",
