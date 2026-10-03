@@ -1,3 +1,12 @@
+@font-face {
+  font-family: "Homepage Title Serif";
+  src: url("/fonts/homepage-title-serif.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  unicode-range: U+65E0, U+6DAF, U+77E5, U+8005;
+}
+
 :root {
   --page-max: 1120px;
 
@@ -711,7 +720,7 @@ button, a {
   }
 
   .brand h1 {
-    font-family: "Songti SC Bold", "Songti SC", "STSongti-SC-Bold", "STSong", serif;
+    font-family: "Homepage Title Serif", serif;
     font-weight: 700;
     font-synthesis: none;
     text-align: center;
