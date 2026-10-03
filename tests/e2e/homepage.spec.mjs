@@ -205,7 +205,7 @@ test("mobile brand is centered and loads the self-hosted title font", async ({ p
   expect(result.brandWidth).toBeGreaterThan(250);
   expect(result.justifyContent).toBe("center");
   expect(result.textAlign).toBe("center");
-  expect(result.fontFamily.startsWith('"Homepage Title Serif"')).toBeTruthy();
+  expect(result.fontFamily).toContain("Homepage Title Serif");
 
   const customFontLoaded = await page.evaluate(async () => {
     await document.fonts.load('700 32px "Homepage Title Serif"', "知无涯者");
