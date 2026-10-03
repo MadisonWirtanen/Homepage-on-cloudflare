@@ -5,9 +5,15 @@ export const APP_CONFIG = {
   favicon: "https://cdn.003153.xyz/%E7%9F%A5%E6%97%A0%E6%B6%AF%E8%80%85.png",
   background: {
     image: "https://img.003153.xyz/index.php",
-    saturate: 82,
-    brightness: 68,
     opacity: 100,
+    dark: {
+      saturate: 82,
+      brightness: 68,
+    },
+    light: {
+      saturate: 76,
+      brightness: 112,
+    },
   },
   weather: {
     label: "杭州",
@@ -30,13 +36,13 @@ export const STATUS_CARDS = [
     id: "cloudflareLinux",
     name: "本地服务器",
     description: "Cloudflare Tunnel · Linux",
-    icon: "https://cdn.simpleicons.org/cloudflare",
+    icon: "/icons/cloudflare.svg",
   },
   {
     id: "cloudflareColoCrossing",
     name: "ColoCrossing",
     description: "Cloudflare Tunnel · ColoCrossing",
-    icon: "https://cdn.simpleicons.org/cloudflare",
+    icon: "/icons/cloudflare.svg",
   },
   {
     id: "uptimeRobot",

@@ -69,9 +69,11 @@ async function fetchCloudflareTunnelStatuses(env, timeoutMs) {
     }
 
     const byName = new Map(data.result.map((tunnel) => [String(tunnel.name || "").toLowerCase(), tunnel]));
+    const linuxName = String(env.TUNNEL_LINUX_NAME || "Linux").trim();
+    const coloName = String(env.TUNNEL_COLO_NAME || "ColoCrossing").trim();
     return {
-      cloudflareLinux: tunnelResult(byName.get("linux"), "Linux"),
-      cloudflareColoCrossing: tunnelResult(byName.get("colocrossing"), "ColoCrossing"),
+      cloudflareLinux: tunnelResult(byName.get(linuxName.toLowerCase()), linuxName),
+      cloudflareColoCrossing: tunnelResult(byName.get(coloName.toLowerCase()), coloName),
     };
   } catch (error) {
     const failed = { configured: true, ok: false, status: "error", error: sanitizedError(error), connections: null };

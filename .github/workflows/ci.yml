@@ -12,16 +12,46 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
-      - run: npm install
+          node-version: 24
+          cache: npm
+      - run: npm ci
       - run: npm run check
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
 
   smoke:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: verify
+    needs: [verify, secrets, e2e]
     runs-on: ubuntu-latest
     steps:
       - name: Verify production homepage
@@ -37,32 +67,18 @@ jobs:
           }
 
           PAGE_READY=0
-          for attempt in {1..12}; do
+          for attempt in {1..36}; do
             ROOT_CODE="$(fetch_code "/" /tmp/root.html || true)"
             APP_CODE="$(fetch_code "/app.js" /tmp/app.js || true)"
+            SEARCH_CODE="$(fetch_code "/js/search.js" /tmp/search.js || true)"
+            SEARCH_CSS_CODE="$(fetch_code "/styles/search.css" /tmp/search.css || true)"
             CONFIG_CODE="$(fetch_code "/config.js" /tmp/config.js || true)"
+            EFFECT_CODE="$(fetch_code "/effects/glass-pill.png" /tmp/glass-pill.png || true)"
             ICON_CODE="$(fetch_code "/icons/uptime-kuma.svg" /tmp/uptime-kuma.svg || true)"
             HEALTH_CODE="$(fetch_code "/api/health?ci=$GITHUB_SHA&attempt=$attempt" /tmp/health.json || true)"
+            NOT_FOUND_CODE="$(fetch_code "/ci-this-page-does-not-exist" /tmp/not-found.html || true)"
 
-            if [ "$ROOT_CODE" = "200" ] \
-              && [ "$APP_CODE" = "200" ] \
-              && [ "$CONFIG_CODE" = "200" ] \
-              && [ "$ICON_CODE" = "200" ] \
-              && [ "$HEALTH_CODE" = "200" ] \
-              && grep -q '<title>知无涯者</title>' /tmp/root.html \
-              && grep -q 'id="page-title">知无涯者</h1>' /tmp/root.html \
-              && grep -q 'https://img.003153.xyz/index.php' /tmp/config.js \
-              && grep -q 'https://cdn.003153.xyz/%E7%9F%A5%E6%97%A0%E6%B6%AF%E8%80%85.png' /tmp/config.js \
-              && grep -q 'saturate: 82' /tmp/config.js \
-              && grep -q 'brightness: 68' /tmp/config.js \
-              && grep -q 'opacity: 100' /tmp/config.js \
-              && grep -q 'id="theme-toggle"' /tmp/root.html \
-              && grep -q 'id="glass-tuner-toggle"' /tmp/root.html \
-              && grep -q 'id="search-selection"' /tmp/root.html \
-              && grep -q 'max="100"' /tmp/root.html \
-              && grep -q 'value="72"' /tmp/root.html \
-              && grep -q 'function beginDrag' /tmp/app.js \
-              && jq -e '.ok == true and .runtime == "cloudflare-workers"' /tmp/health.json >/dev/null 2>&1; then
+            if [ "$ROOT_CODE" = "200" ]               && [ "$APP_CODE" = "200" ]               && [ "$SEARCH_CODE" = "200" ]               && [ "$SEARCH_CSS_CODE" = "200" ]               && [ "$CONFIG_CODE" = "200" ]               && [ "$EFFECT_CODE" = "200" ]               && [ "$ICON_CODE" = "200" ]               && [ "$HEALTH_CODE" = "200" ]               && [ "$NOT_FOUND_CODE" = "404" ]               && grep -q '<title>知无涯者</title>' /tmp/root.html               && grep -q 'href="/styles/search.css"' /tmp/root.html               && grep -q 'href="/effects/glass-pill.png"' /tmp/root.html               && grep -q 'function beginDrag' /tmp/search.js               && grep -q 'max="100"' /tmp/root.html               && grep -q 'value="72"' /tmp/root.html               && grep -q '页面不存在' /tmp/not-found.html               && jq -e '.ok == true and .runtime == "cloudflare-workers"' /tmp/health.json >/dev/null 2>&1; then
               PAGE_READY=1
               break
             fi
