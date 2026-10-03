@@ -131,6 +131,7 @@ function createStatusSection() {
   refresh.className = "ghost-button";
   refresh.type = "button";
   refresh.textContent = "刷新";
+  refresh.title = "60 秒内可能复用服务端最近一次状态结果";
 
   actions.append(updated, refresh);
 
