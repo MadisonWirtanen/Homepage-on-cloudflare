@@ -1,0 +1,46 @@
+name: Generate title font subset
+
+on:
+  push:
+    branches: [selfhost-title-font]
+
+permissions:
+  contents: write
+
+jobs:
+  subset:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install fonttools
+        run: pip install "fonttools[woff]"
+      - name: Download Noto Serif SC and OFL
+        run: |
+          mkdir -p .font-build public/fonts
+          curl -fL 'https://raw.githubusercontent.com/google/fonts/main/ofl/notoserifsc/NotoSerifSC%5Bwght%5D.ttf' -o .font-build/NotoSerifSC-wght.ttf
+          curl -fL 'https://raw.githubusercontent.com/google/fonts/main/ofl/notoserifsc/OFL.txt' -o public/fonts/OFL-NotoSerifSC.txt
+      - name: Build 4-character bold WOFF2 subset
+        run: |
+          python -m fontTools.varLib.instancer .font-build/NotoSerifSC-wght.ttf wght=700 --output .font-build/NotoSerifSC-Bold.ttf
+          pyftsubset .font-build/NotoSerifSC-Bold.ttf \
+            --text='知无涯者' \
+            --flavor=woff2 \
+            --output-file=public/fonts/homepage-title-serif.woff2 \
+            --layout-features='*' \
+            --name-IDs='0,1,2,3,4,5,6' \
+            --name-legacy \
+            --name-languages='*' \
+            --notdef-glyph \
+            --recommended-glyphs
+          ls -lh public/fonts/homepage-title-serif.woff2
+      - name: Commit generated assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/fonts/homepage-title-serif.woff2 public/fonts/OFL-NotoSerifSC.txt
+          git commit -m "assets: add self-hosted title font subset"
+          git push
