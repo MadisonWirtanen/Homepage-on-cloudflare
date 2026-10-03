@@ -104,7 +104,7 @@ function createSectionHeading({ title, icon, id, actions = null }) {
 
 function createGroupSection(group, { primary = false } = {}) {
   const section = document.createElement("section");
-  section.className = `section ${primary ? "primary-section" : "group-row"}${group.compact ? " compact" : ""}`;
+  section.className = `section ${primary ? "primary-section" : "group-row"} ${group.id}-section${group.compact ? " compact" : ""}`;
   const headingId = `${group.id}-heading`;
   section.setAttribute("aria-labelledby", headingId);
   section.appendChild(createSectionHeading({
@@ -121,9 +121,7 @@ function createGroupSection(group, { primary = false } = {}) {
   return section;
 }
 
-function renderStatusSection() {
-  const root = document.getElementById("primary-root");
-
+function createStatusSection() {
   const actions = document.createElement("div");
   actions.className = "status-actions";
 
@@ -141,7 +139,7 @@ function renderStatusSection() {
   actions.append(updated, refresh);
 
   const section = document.createElement("section");
-  section.className = "section primary-section";
+  section.className = "section primary-section status-section";
   section.setAttribute("aria-labelledby", "status-heading");
   section.appendChild(createSectionHeading({
     title: "Status",
@@ -154,7 +152,7 @@ function renderStatusSection() {
   grid.id = "status-grid";
   grid.className = "primary-grid";
   section.appendChild(grid);
-  root.appendChild(section);
+  return section;
 }
 
 function renderStatusCards() {
@@ -200,16 +198,32 @@ function renderStatusCards() {
   }
 }
 
+function renderPrimaryLayout() {
+  const root = document.getElementById("primary-root");
+  const publicGroup = GROUPS.find((group) => group.id === "public");
+  const contactGroup = GROUPS.find((group) => group.id === "contact");
+
+  if (publicGroup) {
+    root.appendChild(createGroupSection(publicGroup, { primary: true }));
+  }
+
+  const split = document.createElement("div");
+  split.className = "primary-split";
+  split.appendChild(createStatusSection());
+
+  if (contactGroup) {
+    split.appendChild(createGroupSection(contactGroup, { primary: true }));
+  }
+
+  root.appendChild(split);
+}
+
 function renderGroups() {
-  const primary = document.getElementById("primary-root");
   const rows = document.getElementById("groups-root");
 
   for (const group of GROUPS) {
-    if (group.id === "public" || group.id === "contact") {
-      primary.appendChild(createGroupSection(group, { primary: true }));
-    } else {
-      rows.appendChild(createGroupSection(group));
-    }
+    if (group.id === "public" || group.id === "contact") continue;
+    rows.appendChild(createGroupSection(group));
   }
 }
 
@@ -439,6 +453,33 @@ function setupSearch() {
   });
 }
 
+
+function setupLiquidGlass() {
+  const finePointer = window.matchMedia("(pointer: fine)").matches;
+  const elements = document.querySelectorAll(
+    ".search-shell, .widget-block, .card, .ghost-button"
+  );
+
+  elements.forEach((element) => {
+    element.classList.add("liquid-glass");
+
+    if (!finePointer) return;
+
+    element.addEventListener("pointermove", (event) => {
+      const rect = element.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * 100;
+      const y = ((event.clientY - rect.top) / rect.height) * 100;
+      element.style.setProperty("--glass-x", `${x.toFixed(1)}%`);
+      element.style.setProperty("--glass-y", `${y.toFixed(1)}%`);
+    });
+
+    element.addEventListener("pointerleave", () => {
+      element.style.setProperty("--glass-x", "50%");
+      element.style.setProperty("--glass-y", "18%");
+    });
+  });
+}
+
 function applyTheme() {
   document.title = APP_CONFIG.title;
   document.documentElement.lang = APP_CONFIG.language;
@@ -454,10 +495,11 @@ function applyTheme() {
 
 function init() {
   applyTheme();
-  renderStatusSection();
+  renderPrimaryLayout();
   renderStatusCards();
   renderGroups();
   setupSearch();
+  setupLiquidGlass();
   startClock();
   updateWeather();
   refreshStatus();
