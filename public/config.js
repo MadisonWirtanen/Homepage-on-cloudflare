@@ -36,7 +36,7 @@ export const STATUS_CARDS = [
     id: "uptimeRobot",
     name: "云服务监控",
     description: "云服务可用性监控",
-    icon: "https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/uptime-kuma.svg",
+    icon: "/icons/uptime-kuma.svg",
   },
 ];
 

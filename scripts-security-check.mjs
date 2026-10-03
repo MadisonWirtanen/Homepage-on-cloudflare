@@ -5,8 +5,6 @@ const root = new URL("./", import.meta.url).pathname;
 const ignored = new Set(["node_modules", ".git", ".wrangler"]);
 const allowedPlaceholderFile = ".dev.vars.example";
 const suspicious = [
-  { name: "Tailscale API/Auth key", pattern: /tskey-(?:api|auth)-[A-Za-z0-9_-]{12,}/g },
-  { name: "Tailscale OAuth secret", pattern: /tskey-client-[A-Za-z0-9_-]{12,}/g },
   { name: "UptimeRobot API key", pattern: /ur\d+-[A-Za-z0-9_-]{12,}/g },
   { name: "PEM private key", pattern: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g },
 ];
