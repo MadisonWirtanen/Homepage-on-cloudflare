@@ -1,0 +1,23 @@
+name: Generate lockfile
+
+on:
+  push:
+    branches: [refactor-phase-abc]
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm install --package-lock-only --ignore-scripts
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package-lock
+          path: package-lock.json
+          archive: false
