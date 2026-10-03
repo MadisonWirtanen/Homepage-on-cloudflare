@@ -1,15 +1,17 @@
 {
   "name": "homepage-on-cloudflare",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "Cloudflare-native personal homepage with static assets and a minimal status Worker.",
   "scripts": {
-    "check": "node --check src/worker.js && node --check public/app.js && node --check public/config.js && node --test tests/*.test.mjs && node scripts-security-check.mjs",
+    "check": "node --check src/worker.js && node --check public/app.js && node --test tests/*.test.mjs && node scripts-security-check.mjs",
+    "test:e2e": "playwright test",
     "dev": "wrangler dev",
     "deploy": "npm run check && wrangler deploy"
   },
   "devDependencies": {
-    "wrangler": "^4.34.0"
+    "@playwright/test": "1.63.0",
+    "wrangler": "4.34.0"
   }
 }
