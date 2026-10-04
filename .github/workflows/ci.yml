@@ -120,6 +120,35 @@ jobs:
             exit 1
           fi
 
+          WEATHER_READY=0
+          for attempt in {1..12}; do
+            WEATHER_CODE="$(fetch_code "/api/weather?ci=$GITHUB_SHA&attempt=$attempt" /tmp/weather.json || true)"
+            if [ "$WEATHER_CODE" = "200" ] && jq -e '
+              (.location.label | type == "string" and length > 0) and
+              (.location.source == "ip" or .location.source == "fallback") and
+              (.current.temperature_2m | type == "number") and
+              (.current.apparent_temperature | type == "number") and
+              (.current.weather_code | type == "number")
+            ' /tmp/weather.json >/dev/null 2>&1; then
+              WEATHER_READY=1
+              break
+            fi
+            sleep 5
+          done
+
+          if [ "$WEATHER_READY" != "1" ]; then
+            echo "Production weather API did not become ready."
+            cat /tmp/weather.json || true
+            exit 1
+          fi
+
+          jq '{
+            location: .location.label,
+            source: .location.source,
+            temperature: .current.temperature_2m,
+            weatherCode: .current.weather_code
+          }' /tmp/weather.json
+
           jq '{
             checkedAt,
             cloudflareLinux: {

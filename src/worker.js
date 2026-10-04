@@ -1,4 +1,4 @@
-import { isCrossSiteRequest, summarizeUptimeRobot } from "./lib.js";
+import { HANGZHOU_WEATHER_LOCATION, isCrossSiteRequest, resolveWeatherLocation, summarizeUptimeRobot } from "./lib.js";
 
 let statusMemoryCache = { expiresAt: 0, payload: null };
 
@@ -107,6 +107,76 @@ async function fetchUptimeRobotStatus(env, timeoutMs) {
   }
 }
 
+async function fetchWeather(location, env) {
+  const timeoutMs = numberEnv(env.WEATHER_TIMEOUT_MS, 4000);
+  const params = new URLSearchParams({
+    latitude: String(location.latitude),
+    longitude: String(location.longitude),
+    current: "temperature_2m,weather_code,apparent_temperature",
+    timezone: location.timezone || "auto",
+  });
+
+  const response = await fetchWithTimeout(
+    `https://api.open-meteo.com/v1/forecast?${params.toString()}`,
+    { headers: { Accept: "application/json" } },
+    timeoutMs
+  );
+  if (!response.ok) throw new Error(`Open-Meteo HTTP ${response.status}`);
+
+  const data = await response.json();
+  if (!data?.current || typeof data.current !== "object") {
+    throw new Error("Open-Meteo returned an invalid response");
+  }
+
+  return {
+    location: {
+      label: location.label,
+      city: location.city || "",
+      region: location.region || "",
+      country: location.country || "",
+      source: location.source,
+    },
+    current: data.current,
+  };
+}
+
+async function weatherHandler(request, env) {
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return jsonResponse({ error: "method not allowed" }, { status: 405, headers: { Allow: "GET, HEAD" } });
+  }
+  if (isCrossSiteRequest(request)) {
+    return jsonResponse({ error: "cross-site request blocked" }, { status: 403 });
+  }
+
+  const ipLocation = resolveWeatherLocation(request.cf || {});
+
+  try {
+    const payload = await fetchWeather(ipLocation, env);
+    return jsonResponse(request.method === "HEAD" ? null : payload, {
+      headers: { "Cache-Control": "private, no-store" },
+    });
+  } catch (error) {
+    if (ipLocation.source === "ip") {
+      try {
+        const payload = await fetchWeather(HANGZHOU_WEATHER_LOCATION, env);
+        return jsonResponse(request.method === "HEAD" ? null : payload, {
+          headers: {
+            "Cache-Control": "private, no-store",
+            "X-Weather-Fallback": "hangzhou",
+          },
+        });
+      } catch {
+        // Preserve the original IP-weather error below.
+      }
+    }
+
+    return jsonResponse(
+      { error: "weather unavailable", detail: sanitizedError(error) },
+      { status: 502, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+}
+
 async function buildStatusPayload(env) {
   const timeoutMs = numberEnv(env.STATUS_TIMEOUT_MS, 4000);
   const [tunnels, uptimeRobot] = await Promise.all([
@@ -145,6 +215,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/api/status") return statusHandler(request, env);
+    if (url.pathname === "/api/weather") return weatherHandler(request, env);
     if (url.pathname === "/api/health") {
       return jsonResponse({ ok: true, runtime: "cloudflare-workers" }, { headers: { "Cache-Control": "no-store" } });
     }

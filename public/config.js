@@ -17,9 +17,6 @@ export const APP_CONFIG = {
   },
   weather: {
     label: "杭州",
-    latitude: 30.2936,
-    longitude: 120.1614,
-    timezone: "auto",
     cacheMinutes: 10,
   },
   statusCacheMinutes: 10,

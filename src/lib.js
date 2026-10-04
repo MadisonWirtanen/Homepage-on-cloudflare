@@ -21,3 +21,61 @@ export function isCrossSiteRequest(request) {
   if (origin && origin !== url.origin) return true;
   return request.headers.get("Sec-Fetch-Site") === "cross-site";
 }
+
+
+export const HANGZHOU_WEATHER_LOCATION = Object.freeze({
+  label: "杭州",
+  city: "Hangzhou",
+  region: "Zhejiang",
+  country: "CN",
+  latitude: 30.2936,
+  longitude: 120.1614,
+  timezone: "Asia/Shanghai",
+  source: "fallback",
+});
+
+function cleanLocationText(value) {
+  if (typeof value !== "string") return "";
+  return value.trim().replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 80);
+}
+
+export function resolveWeatherLocation(cf = {}) {
+  const rawLatitude = cf?.latitude;
+  const rawLongitude = cf?.longitude;
+  const hasLatitude = rawLatitude !== null && rawLatitude !== undefined && String(rawLatitude).trim() !== "";
+  const hasLongitude = rawLongitude !== null && rawLongitude !== undefined && String(rawLongitude).trim() !== "";
+  const latitude = Number(rawLatitude);
+  const longitude = Number(rawLongitude);
+  const validCoordinates =
+    hasLatitude &&
+    hasLongitude &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180;
+
+  if (!validCoordinates) {
+    return { ...HANGZHOU_WEATHER_LOCATION };
+  }
+
+  const city = cleanLocationText(cf?.city);
+  const region = cleanLocationText(cf?.region);
+  const country = cleanLocationText(cf?.country);
+  const timezone = cleanLocationText(cf?.timezone) || "auto";
+  const label = /^hangzhou$/i.test(city)
+    ? "杭州"
+    : city || region || country || "当前位置";
+
+  return {
+    label,
+    city,
+    region,
+    country,
+    latitude,
+    longitude,
+    timezone,
+    source: "ip",
+  };
+}
