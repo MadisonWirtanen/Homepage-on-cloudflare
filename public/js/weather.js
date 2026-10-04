@@ -1,7 +1,7 @@
 import { APP_CONFIG } from "../config.js";
 import { readCacheEntry, writeCache } from "./storage.js";
 
-const WEATHER_CACHE_KEY = "homepage-cf-weather-v1";
+const WEATHER_CACHE_KEY = "homepage-cf-weather-v2";
 
 function weatherCodeText(code) {
   const map = new Map([
@@ -22,11 +22,13 @@ async function updateWeather() {
     const current = payload?.current || {};
     const temp = Number.isFinite(current.temperature_2m) ? `${Math.round(current.temperature_2m)}°C` : "--";
     document.getElementById("weather-value").textContent = `${temp} · ${weatherCodeText(current.weather_code)}`;
+
     const apparent = Number.isFinite(current.apparent_temperature)
       ? `${Math.round(current.apparent_temperature)}°C`
       : "--";
+    const locationLabel = payload?.location?.label || weather.label;
     document.getElementById("weather-extra").textContent =
-      `${weather.label} · 体感 ${apparent}${stale ? " · 缓存" : ""}`;
+      `${locationLabel} · 体感 ${apparent}${stale ? " · 缓存" : ""}`;
   };
 
   if (cached) {
@@ -34,22 +36,12 @@ async function updateWeather() {
     if (!cached.isStale) return;
   }
 
-  const params = new URLSearchParams({
-    latitude: String(weather.latitude),
-    longitude: String(weather.longitude),
-    current: "temperature_2m,weather_code,apparent_temperature",
-    timezone: weather.timezone,
-  });
-
-  if (weather.units === "imperial") {
-    params.set("temperature_unit", "fahrenheit");
-    params.set("wind_speed_unit", "mph");
-    params.set("precipitation_unit", "inch");
-  }
-
   try {
-    const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
+    const response = await fetch("/api/weather", {
+      headers: { Accept: "application/json" },
+    });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
     const payload = await response.json();
     writeCache(WEATHER_CACHE_KEY, payload);
     render(payload);
