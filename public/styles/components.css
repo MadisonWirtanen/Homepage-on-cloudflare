@@ -46,6 +46,10 @@
     padding: 0;
 }
 
+.status-card.is-expanded {
+  align-self: stretch;
+}
+
 .status-summary {
   position: relative;
     z-index: 2;

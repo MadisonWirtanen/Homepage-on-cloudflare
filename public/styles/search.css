@@ -1,6 +1,9 @@
 /* Search layout, input, Prussian-blue segmented control and matching action button. */
 
 .search-shell {
+  --search-control-width: 72px;
+  --search-control-height: 35px;
+
   width: min(760px, 100%);
   margin: 0 auto 28px;
   display: grid;
@@ -13,8 +16,9 @@
 
 .search-providers {
   position: relative;
-  width: 228px;
-  display: flex;
+  width: max-content;
+  display: grid;
+  grid-template-columns: repeat(3, var(--search-control-width));
   align-items: center;
   gap: 3px;
   padding: 3px;
@@ -29,10 +33,10 @@
 .search-provider {
   position: relative;
   z-index: 2;
-  flex: 1 1 0;
-  width: auto;
-  min-width: 0;
-  min-height: 31px;
+  width: var(--search-control-width);
+  min-width: var(--search-control-width);
+  height: var(--search-control-height);
+  min-height: var(--search-control-height);
   padding: 0 10px;
   border: 0;
   border-radius: 8px;
@@ -57,6 +61,7 @@
   background: transparent;
   box-shadow: none;
   cursor: grab;
+  font-weight: 570;
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.18);
 }
 
@@ -68,9 +73,10 @@
   position: absolute;
   left: 0;
   top: 3px;
-  bottom: 3px;
+  bottom: auto;
   z-index: 1;
-  width: 72px;
+  width: var(--search-control-width);
+  height: var(--search-control-height);
   pointer-events: none;
   transform: translate3d(3px, 0, 0);
   transform-origin: center;
@@ -197,8 +203,11 @@
 }
 
 .search-submit {
-  min-height: 35px;
-  padding: 0 15px;
+  width: var(--search-control-width);
+  min-width: var(--search-control-width);
+  height: var(--search-control-height);
+  min-height: var(--search-control-height);
+  padding: 0;
   border: 1px solid rgba(119, 194, 235, 0.40);
   border-radius: 10px;
   color: #ffffff;
@@ -286,10 +295,7 @@ html[data-theme="light"] .search-icon {
 
   .search-providers {
     grid-column: 1 / -1;
-    width: 100%;
-  }
-
-  .search-provider {
-    flex: 1 1 0;
+    width: max-content;
+    max-width: 100%;
   }
 }

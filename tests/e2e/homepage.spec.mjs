@@ -92,6 +92,31 @@ test("search thumb is visible, aligned and clickable", async ({ page }) => {
   expect(Math.abs(nextThumb.width - nextButton.width)).toBeLessThan(4);
 });
 
+test("search provider controls match the search action button size", async ({ page }) => {
+  const providers = page.locator(".search-provider");
+  const submit = page.locator(".search-submit");
+  const thumb = page.locator("#search-selection");
+
+  await expect(providers).toHaveCount(3);
+  await expect(submit).toBeVisible();
+  await expect(thumb).toBeVisible();
+
+  const submitBox = await submit.boundingBox();
+  expect(submitBox).not.toBeNull();
+
+  for (let index = 0; index < 3; index += 1) {
+    const box = await providers.nth(index).boundingBox();
+    expect(box).not.toBeNull();
+    expect(Math.abs(box.width - submitBox.width)).toBeLessThan(1);
+    expect(Math.abs(box.height - submitBox.height)).toBeLessThan(1);
+  }
+
+  const thumbBox = await thumb.boundingBox();
+  expect(thumbBox).not.toBeNull();
+  expect(Math.abs(thumbBox.width - submitBox.width)).toBeLessThan(1);
+  expect(Math.abs(thumbBox.height - submitBox.height)).toBeLessThan(1);
+});
+
 test("search thumb can be dragged and snaps to Google", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "Mouse drag is covered by desktop; mobile still covers tap behavior.");
 
@@ -161,6 +186,28 @@ test("status cards are compact and expand on demand", async ({ page }) => {
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await expect(card.locator(".status-metrics")).toContainText("Healthy");
   await expect(card.locator(".status-metrics")).toContainText("4");
+});
+
+test("expanded desktop status cards share a uniform height", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "The equal-height treatment applies to side-by-side desktop cards.");
+
+  const cards = page.locator(".status-card");
+  const summaries = page.locator(".status-summary");
+  await expect(cards).toHaveCount(3);
+
+  for (let index = 0; index < 3; index += 1) {
+    const summary = summaries.nth(index);
+    if (await summary.getAttribute("aria-expanded") === "false") {
+      await summary.click();
+    }
+  }
+
+  await expect.poll(async () => {
+    const heights = await cards.evaluateAll((nodes) =>
+      nodes.map((node) => node.getBoundingClientRect().height)
+    );
+    return Math.max(...heights) - Math.min(...heights);
+  }).toBeLessThan(2);
 });
 
 test("top widgets stay equal width and centered", async ({ page }) => {
