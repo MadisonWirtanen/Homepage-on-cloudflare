@@ -16,6 +16,7 @@
   },
   "vars": {
     "STATUS_TIMEOUT_MS": "4000",
+    "WEATHER_TIMEOUT_MS": "4000",
     "WORKER_MEMORY_TTL_SECONDS": "60",
     "TUNNEL_LINUX_NAME": "Linux",
     "TUNNEL_COLO_NAME": "ColoCrossing"
