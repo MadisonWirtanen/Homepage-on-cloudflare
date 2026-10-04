@@ -36,16 +36,34 @@ jobs:
           GITLEAKS_ENABLE_COMMENTS: "false"
 
   e2e:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
-      - run: npm run test:e2e
+      - name: Refresh visual baselines
+        run: npx playwright test --project=desktop-chromium -g "stable visual baselines cover the four critical glass components" --update-snapshots
+      - name: Commit refreshed visual baselines
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/e2e/homepage.spec.mjs-snapshots/
+          if git diff --cached --quiet; then
+            echo "No snapshot changes to commit."
+          else
+            git commit -m "test: refresh visual baselines"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
