@@ -396,3 +396,85 @@ test("brand logo source is present in first-paint HTML before modules run", asyn
   expect(html).toContain('rel="preload" as="image" href="/branding/logo.webp"');
 });
 
+
+
+async function stabilizeVisualFixture(page) {
+  await page.addStyleTag({
+    content: `
+      .background {
+        background-image:
+          radial-gradient(circle at 18% 12%, rgba(71, 87, 77, .42), transparent 34%),
+          linear-gradient(135deg, #111715 0%, #222a27 52%, #0b1010 100%) !important;
+        filter: none !important;
+        transform: none !important;
+      }
+
+      body::before {
+        background:
+          linear-gradient(180deg, rgba(3, 7, 12, .22), rgba(3, 7, 12, .58)) !important;
+      }
+
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+        caret-color: transparent !important;
+      }
+    `,
+  });
+
+  await page.evaluate(() => {
+    document.documentElement.dataset.theme = "dark";
+    const background = document.querySelector(".background");
+    background?.removeAttribute("style");
+
+    const updated = document.getElementById("status-updated");
+    if (updated) updated.textContent = "检查于 08:00:00";
+  });
+
+  await page.evaluate(() => document.fonts.ready);
+}
+
+test("stable visual baselines cover the four critical glass components", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "Keep visual baselines small and deterministic.");
+  test.skip(process.platform !== "linux", "Golden images are normalized on the Linux CI renderer.");
+
+  await stabilizeVisualFixture(page);
+
+  await expect(page.locator("#brand-logo")).toBeVisible();
+  await expect(page.locator(".brand")).toHaveScreenshot("brand-header.png", {
+    animations: "disabled",
+    maxDiffPixelRatio: 0.015,
+  });
+
+  await expect(page.locator(".search-shell")).toHaveScreenshot("search-shell.png", {
+    animations: "disabled",
+    maxDiffPixelRatio: 0.015,
+  });
+
+  const linuxDot = page.locator('[data-provider-id="cloudflareLinux"] .status-dot');
+  await expect(linuxDot).toHaveClass(/good/);
+
+  const summaries = page.locator(".status-summary");
+  for (let index = 0; index < await summaries.count(); index += 1) {
+    const summary = summaries.nth(index);
+    if (await summary.getAttribute("aria-expanded") === "false") {
+      await summary.click();
+    }
+  }
+
+  await expect(page.locator('[data-provider-id="cloudflareLinux"] .status-summary'))
+    .toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator(".status-section")).toHaveScreenshot("status-expanded.png", {
+    animations: "disabled",
+    maxDiffPixelRatio: 0.015,
+  });
+
+  const glassToggle = page.locator("#glass-tuner-toggle");
+  await glassToggle.hover();
+  await expect.poll(async () => (await glassToggle.boundingBox())?.width ?? 0).toBeGreaterThan(120);
+
+  await expect(page.locator("#side-controls")).toHaveScreenshot("side-controls.png", {
+    animations: "disabled",
+    maxDiffPixelRatio: 0.015,
+  });
+});
