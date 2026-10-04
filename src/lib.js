@@ -40,9 +40,15 @@ function cleanLocationText(value) {
 }
 
 export function resolveWeatherLocation(cf = {}) {
-  const latitude = Number(cf?.latitude);
-  const longitude = Number(cf?.longitude);
+  const rawLatitude = cf?.latitude;
+  const rawLongitude = cf?.longitude;
+  const hasLatitude = rawLatitude !== null && rawLatitude !== undefined && String(rawLatitude).trim() !== "";
+  const hasLongitude = rawLongitude !== null && rawLongitude !== undefined && String(rawLongitude).trim() !== "";
+  const latitude = Number(rawLatitude);
+  const longitude = Number(rawLongitude);
   const validCoordinates =
+    hasLatitude &&
+    hasLongitude &&
     Number.isFinite(latitude) &&
     Number.isFinite(longitude) &&
     latitude >= -90 &&
