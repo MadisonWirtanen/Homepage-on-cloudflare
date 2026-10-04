@@ -39,11 +39,18 @@ async function mockExternalData(page) {
     });
   });
 
-  await page.route("https://api.open-meteo.com/**", async (route) => {
+  await page.route("**/api/weather*", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
+        location: {
+          label: "杭州",
+          city: "Hangzhou",
+          region: "Zhejiang",
+          country: "CN",
+          source: "fallback",
+        },
         current: {
           temperature_2m: 23.4,
           apparent_temperature: 24.1,
@@ -401,16 +408,23 @@ test("stale status remains visible when refresh fails", async ({ page }) => {
   await expect(page.locator("#status-updated")).toContainText("刷新失败，保留缓存");
 });
 
-test("stale weather remains visible when Open-Meteo is unavailable", async ({ page }) => {
-  await page.unroute("https://api.open-meteo.com/**");
-  await page.route("https://api.open-meteo.com/**", async (route) => {
+test("stale weather remains visible when the weather API is unavailable", async ({ page }) => {
+  await page.unroute("**/api/weather*");
+  await page.route("**/api/weather*", async (route) => {
     await route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
   });
 
   await page.evaluate(() => {
-    localStorage.setItem("homepage-cf-weather-v1", JSON.stringify({
+    localStorage.setItem("homepage-cf-weather-v2", JSON.stringify({
       savedAt: Date.now() - 30 * 60_000,
       value: {
+        location: {
+          label: "杭州",
+          city: "Hangzhou",
+          region: "Zhejiang",
+          country: "CN",
+          source: "fallback",
+        },
         current: {
           temperature_2m: 23.4,
           apparent_temperature: 24.1,
@@ -422,7 +436,38 @@ test("stale weather remains visible when Open-Meteo is unavailable", async ({ pa
   await page.reload({ waitUntil: "domcontentloaded" });
 
   await expect(page.locator("#weather-value")).toContainText("23°C");
+  await expect(page.locator("#weather-extra")).toContainText("杭州");
   await expect(page.locator("#weather-extra")).toContainText("缓存");
+});
+
+test("weather renders the city resolved by the same-origin IP weather API", async ({ page }) => {
+  await page.unroute("**/api/weather*");
+  await page.route("**/api/weather*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        location: {
+          label: "Los Angeles",
+          city: "Los Angeles",
+          region: "California",
+          country: "US",
+          source: "ip",
+        },
+        current: {
+          temperature_2m: 19.6,
+          apparent_temperature: 19.1,
+          weather_code: 2,
+        },
+      }),
+    });
+  });
+
+  await page.evaluate(() => localStorage.removeItem("homepage-cf-weather-v2"));
+  await page.reload({ waitUntil: "domcontentloaded" });
+
+  await expect(page.locator("#weather-value")).toContainText("20°C");
+  await expect(page.locator("#weather-extra")).toContainText("Los Angeles");
 });
 
 test("self-hosted brand image is available and used by logo and favicon", async ({ page, request }) => {
