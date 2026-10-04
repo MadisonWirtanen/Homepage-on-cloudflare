@@ -15,11 +15,13 @@
   |      -> Cloudflare Static Assets
   |      -> 不执行 Worker
   |
-  +-- Open-Meteo
-  |      -> 浏览器直接请求
+  +-- /api/weather
+  |      -> Cloudflare Worker 使用 request.cf 的 IP 归属地
+  |           |-- 有可用城市/坐标 -> Open-Meteo
+  |           |-- 缺失或失败 -> 杭州作为 fallback
   |
   +-- /api/status
-         -> 一个 Cloudflare Worker 请求
+         -> Cloudflare Worker 请求
               |-- Cloudflare Tunnel API
               |-- UptimeRobot API
 ```
@@ -51,7 +53,7 @@
 
 - 标题、Logo、favicon、背景图和原有分组。
 - Public / Contact / 学术资源 / 网页工具 / 设计素材 / 影音娱乐。
-- 杭州 Open-Meteo 天气。
+- 天气默认显示杭州；随后由 Worker 根据访问 IP 的 Cloudflare 归属地显示当地 Open-Meteo 天气，不请求浏览器或设备定位权限。
 - 日期与实时本地时间。
 - 百度 / Bing / Google 搜索。
 - Cloudflare Tunnel：同时监控 `Linux` 与 `ColoCrossing` 两个连接器。
@@ -77,7 +79,7 @@ Worker 每次状态刷新只调用一次 Cloudflare Tunnel 列表 API，同时�
 
 ### 浏览器缓存 10 分钟
 
-同一浏览器在 10 分钟内重复打开主页，会优先使用 `localStorage` 中的状态结果，不重新调用 Worker。缓存过期后，页面会先保留最后一次成功结果并尝试后台刷新；如果上游 API 暂时失败，会明确标记缓存/过期状态，而不是把已有信息清空。点击“刷新状态”会绕过浏览器缓存，但 60 秒内仍可能复用 Worker 最近一次内存结果。
+同一浏览器在 10 分钟内重复打开主页，会优先使用 `localStorage` 中的状态和天气结果，不重新调用对应 Worker API。缓存过期后，页面会先保留最后一次成功结果并尝试后台刷新；如果上游 API 暂时失败，会明确标记缓存/过期状态，而不是把已有信息清空。点击“刷新状态”会绕过状态浏览器缓存，但 60 秒内仍可能复用 Worker 最近一次内存结果。
 
 ### Worker 内存缓存 60 秒
 
