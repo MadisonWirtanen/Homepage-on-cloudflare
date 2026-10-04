@@ -45,7 +45,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium webkit
-      - run: npm run test:e2e
+      - name: Generate visual baselines
+        run: npx playwright test --update-snapshots
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: visual-baselines
+          path: tests/e2e/homepage.spec.mjs-snapshots/
+          if-no-files-found: error
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
